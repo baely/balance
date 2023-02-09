@@ -7,18 +7,14 @@ import (
 	firebase "firebase.google.com/go"
 )
 
-type Config struct {
-	ProjectID string
-}
-
 type Client struct {
 	firestoreClient *firestore.Client
 }
 
-func GetClient(cfg Config) (*Client, error) {
+func GetClient(projectId string) (*Client, error) {
 	ctx := context.Background()
 	firebaseCfg := &firebase.Config{
-		ProjectID: cfg.ProjectID,
+		ProjectID: projectId,
 	}
 	app, err := firebase.NewApp(ctx, firebaseCfg)
 	if err != nil {

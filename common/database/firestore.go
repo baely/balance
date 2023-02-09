@@ -15,7 +15,7 @@ type Client struct {
 	firestoreClient *firestore.Client
 }
 
-func GetClient(cfg Config) (*firestore.Client, error) {
+func GetClient(cfg Config) (*Client, error) {
 	ctx := context.Background()
 	firebaseCfg := &firebase.Config{
 		ProjectID: cfg.ProjectID,
@@ -30,7 +30,9 @@ func GetClient(cfg Config) (*firestore.Client, error) {
 		// Do something
 	}
 
-	return client, nil
+	return &Client{
+		client,
+	}, nil
 }
 
 func (c *Client) Close() {

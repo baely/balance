@@ -22,12 +22,12 @@ func GetClient(cfg Config) (*Client, error) {
 	}
 	app, err := firebase.NewApp(ctx, firebaseCfg)
 	if err != nil {
-		// Do something
+		return nil, err
 	}
 
 	client, err := app.Firestore(ctx)
 	if err != nil {
-		// Do something
+		return nil, err
 	}
 
 	return &Client{
@@ -41,4 +41,8 @@ func (c *Client) Close() {
 
 func (c *Client) UpdateAccountBalance(value string) {
 
+}
+
+func (c *Client) GetAccountBalance() string {
+	return "100"
 }

@@ -1,9 +1,12 @@
 package api
 
 import (
+	"fmt"
+	"io"
 	"net/http"
 
 	"github.com/GoogleCloudPlatform/functions-framework-go/functions"
+	"github.com/baely/balance/common/database"
 )
 
 func init() {
@@ -12,7 +15,14 @@ func init() {
 
 func retrieveAccountBalance(w http.ResponseWriter, r *http.Request) {
 	// Retrieve current account balance
+	dbClient, err := database.GetClient(database.Config{})
+	if err != nil {
+		fmt.Println(err)
+		http.Error(w, "", http.StatusInternalServerError)
+	}
 
-	// 1. Read from firestore
-	// 2. Return value
+	accountBalance := dbClient.GetAccountBalance()
+
+	// Write account balance to response
+	io.WriteString(w, accountBalance)
 }

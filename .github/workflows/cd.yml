@@ -17,8 +17,7 @@ jobs:
 
       - uses: "google-github-actions/auth@v1"
         with:
-          workload_identity_provider: "${{ secrets.WIF_PROVIDER_NAME }}"
-          service_account: "${{ secrets.SERVICE_ACCOUNT_EMAIL }}"
+          credentials_json: "${{ secrets.SERVICE_TOKEN }}"
 
       - uses: "google-github-actions/deploy-cloud-functions@v1"
         with:
@@ -36,8 +35,7 @@ jobs:
 
       - uses: "google-github-actions/auth@v1"
         with:
-          workload_identity_provider: "${{ secrets.WIF_PROVIDER_NAME }}"
-          service_account: "${{ secrets.SERVICE_ACCOUNT_EMAIL }}"
+          credentials_json: "${{ secrets.SERVICE_TOKEN }}"
 
       - uses: "google-github-actions/deploy-cloud-functions@v1"
         with:
@@ -55,8 +53,7 @@ jobs:
 
       - uses: "google-github-actions/auth@v1"
         with:
-          workload_identity_provider: "${{ secrets.WIF_PROVIDER_NAME }}"
-          service_account: "${{ secrets.SERVICE_ACCOUNT_EMAIL }}"
+          credentials_json: "${{ secrets.SERVICE_TOKEN }}"
 
       - uses: "google-github-actions/deploy-cloud-functions@v1"
         with:
@@ -76,8 +73,7 @@ jobs:
 
       - uses: "google-github-actions/auth@v1"
         with:
-          workload_identity_provider: "${{ secrets.WIF_PROVIDER_NAME }}"
-          service_account: "${{ secrets.SERVICE_ACCOUNT_EMAIL }}"
+          credentials_json: "${{ secrets.SERVICE_TOKEN }}"
 
       - uses: "google-github-actions/deploy-cloud-functions@v1"
         with:

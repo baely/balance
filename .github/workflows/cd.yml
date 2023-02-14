@@ -24,6 +24,7 @@ jobs:
         with:
           name: "balance"
           runtime: "go119"
+          region: "australia-southeast1"
 
   deploy-update:
     runs-on: "ubuntu-latest"
@@ -43,6 +44,7 @@ jobs:
         with:
           name: "trigger-balance-update"
           runtime: "go119"
+          region: "australia-southeast1"
 
   deploy-process:
     runs-on: "ubuntu-latest"
@@ -62,6 +64,7 @@ jobs:
         with:
           name: "process-transaction"
           runtime: "go119"
+          region: "australia-southeast1"
           event_trigger_type: "providers/cloud.pubsub/eventTypes/topic.publish"
           event_trigger_resource: "${{ secrets.PUBSUB_TOPIC_PROCESS }}"
 
@@ -83,3 +86,4 @@ jobs:
         with:
           name: "register"
           runtime: "go119"
+          region: "australia-southeast1"

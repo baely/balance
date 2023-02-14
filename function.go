@@ -21,8 +21,8 @@ import (
 
 func init() {
 	functions.HTTP("balance", RetrieveAccountBalance)
-	functions.HTTP("triggerBalanceUpdate", TriggerBalanceUpdate)
-	functions.CloudEvent("processTransaction", ProcessTransaction)
+	functions.HTTP("trigger-balance-update", TriggerBalanceUpdate)
+	functions.CloudEvent("process-transaction", ProcessTransaction)
 	functions.HTTP("register", RegisterWebhook)
 }
 

@@ -1,0 +1,12 @@
+{
+  "hosting": {
+    "public": "public",
+    "rewrites": [{
+      "source": "/balance",
+      "function": "balance"
+    }, {
+      "source": "/register",
+      "function": "register"
+    }]
+  }
+}

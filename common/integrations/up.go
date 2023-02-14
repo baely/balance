@@ -13,11 +13,13 @@ const upBaseUri = "https://api.up.com.au/api/v1/"
 
 type UpClient struct {
 	accessToken string
+	client      *http.Client
 }
 
 func NewUpClient(accessToken string) *UpClient {
 	return &UpClient{
 		accessToken: accessToken,
+		client:      &http.Client{},
 	}
 }
 
@@ -34,8 +36,7 @@ func (c *UpClient) request(endpoint string, ret interface{}) error {
 
 	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", c.accessToken))
 
-	client := &http.Client{}
-	resp, err := client.Do(req)
+	resp, err := c.client.Do(req)
 	if err != nil {
 		return err
 	}

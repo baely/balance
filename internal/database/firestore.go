@@ -98,12 +98,12 @@ func (c *Client) GetWebhookUris() ([]string, error) {
 
 		data, err := doc.DataAt("uri")
 		if err != nil {
-			return nil, err
+			continue
 		}
 
 		uri, ok := data.(string)
 		if !ok {
-			return nil, fmt.Errorf("casting of data failed. data: %v", data)
+			continue
 		}
 
 		uris = append(uris, uri)

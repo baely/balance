@@ -54,6 +54,7 @@ func TriggerBalanceUpdate(w http.ResponseWriter, r *http.Request) {
 		r.Header.Get("X-Up-Authenticity-Signature"),
 	) {
 		http.Error(w, "", http.StatusUnauthorized)
+		fmt.Println("error: failed to validate incoming event")
 		return
 	}
 

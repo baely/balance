@@ -3,10 +3,10 @@ package database
 import (
 	"context"
 	"fmt"
-	"io"
 
 	"cloud.google.com/go/firestore"
 	firebase "firebase.google.com/go"
+	"google.golang.org/api/iterator"
 )
 
 type Client struct {
@@ -92,18 +92,24 @@ func (c *Client) GetWebhookUris() ([]string, error) {
 
 	for {
 		doc, err := iter.Next()
-		if err == io.EOF {
+		if err == iterator.Done {
 			break
+		}
+		if err != nil {
+			fmt.Println("error getting doc:", err)
+			continue
 		}
 
 		data, err := doc.DataAt("uri")
 		if err != nil {
-			return nil, err
+			fmt.Println("error getting uri:", err)
+			continue
 		}
 
 		uri, ok := data.(string)
 		if !ok {
-			return nil, fmt.Errorf("casting of data failed. data: %v", data)
+			fmt.Println("error parsing uri to string. data:", data)
+			continue
 		}
 
 		uris = append(uris, uri)

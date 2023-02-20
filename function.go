@@ -2,20 +2,21 @@ package balance
 
 import (
 	"bytes"
-	"cloud.google.com/go/pubsub"
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/cloudevents/sdk-go/v2/event"
 	"io"
 	"net/http"
 	"os"
-	"strings"
+
+	"cloud.google.com/go/pubsub"
+	"github.com/baely/balance/internal/database"
+	"github.com/baely/balance/internal/integrations"
+	"github.com/baely/balance/internal/model"
+	"github.com/baely/balance/internal/service"
+	"github.com/cloudevents/sdk-go/v2/event"
 
 	"github.com/GoogleCloudPlatform/functions-framework-go/functions"
-	"github.com/baely/balance/pkg/database"
-	"github.com/baely/balance/pkg/integrations"
-	"github.com/baely/balance/pkg/model"
 	"github.com/google/uuid"
 )
 
@@ -150,8 +151,11 @@ func ProcessTransaction(ctx context.Context, e event.Event) error {
 	webhookUris, _ := dbClient.GetWebhookUris()
 
 	for _, uri := range webhookUris {
-		uriReader := strings.NewReader(uri)
-		http.Post(uri, "application/json", uriReader)
+		go func(uri string) {
+			if err := service.SendWebhookEvent(uri, account, transaction); err != nil {
+				fmt.Println("error sending webhook:", err)
+			}
+		}(uri)
 	}
 
 	return nil

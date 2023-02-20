@@ -6,7 +6,7 @@ on:
       - main
 
 jobs:
-  deploy-balance:
+  deploy-prod:
     runs-on: "ubuntu-latest"
     permissions:
       contents: "read"
@@ -28,19 +28,6 @@ jobs:
           secret_environment_variables: |-
             UP_TOKEN=${{ secrets.GSM_UP_SECRET }}
 
-  deploy-update:
-    runs-on: "ubuntu-latest"
-    permissions:
-      contents: "read"
-      id-token: "write"
-
-    steps:
-      - uses: "actions/checkout@v3"
-
-      - uses: "google-github-actions/auth@v1"
-        with:
-          credentials_json: "${{ secrets.SERVICE_TOKEN }}"
-
       - uses: "google-github-actions/deploy-cloud-functions@v1"
         with:
           name: "trigger-balance-update"
@@ -49,19 +36,6 @@ jobs:
           region: "australia-southeast1"
           secret_environment_variables: |-
             UP_WEBHOOK_SECRET=${{ secrets.GSM_UP_WEBHOOK_TOKEN }}
-
-  deploy-process:
-    runs-on: "ubuntu-latest"
-    permissions:
-      contents: "read"
-      id-token: "write"
-
-    steps:
-      - uses: "actions/checkout@v3"
-
-      - uses: "google-github-actions/auth@v1"
-        with:
-          credentials_json: "${{ secrets.SERVICE_TOKEN }}"
 
       - uses: "google-github-actions/deploy-cloud-functions@v1"
         with:
@@ -73,19 +47,6 @@ jobs:
           event_trigger_resource: "${{ secrets.PUBSUB_TOPIC_PROCESS }}"
           secret_environment_variables: |-
             UP_TOKEN=${{ secrets.GSM_UP_SECRET }}
-
-  deploy-register:
-    runs-on: "ubuntu-latest"
-    permissions:
-      contents: "read"
-      id-token: "write"
-
-    steps:
-      - uses: "actions/checkout@v3"
-
-      - uses: "google-github-actions/auth@v1"
-        with:
-          credentials_json: "${{ secrets.SERVICE_TOKEN }}"
 
       - uses: "google-github-actions/deploy-cloud-functions@v1"
         with:

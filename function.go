@@ -28,7 +28,7 @@ func init() {
 
 func RetrieveAccountBalance(w http.ResponseWriter, r *http.Request) {
 	// Retrieve current account balance from firestore
-	dbClient, err := database.GetClient("baileybutler-syd")
+	dbClient, err := database.GetClient(os.Getenv("GCP_PROJECT"))
 	defer dbClient.Close()
 	if err != nil {
 		fmt.Println(err)
@@ -141,7 +141,7 @@ func ProcessTransaction(ctx context.Context, e event.Event) error {
 	accountBalance := account.Attributes.Balance.Value
 
 	// Update datastore
-	dbClient, _ := database.GetClient("baileybutler-syd")
+	dbClient, _ := database.GetClient(os.Getenv("GCP_PROJECT"))
 	defer dbClient.Close()
 
 	dbClient.UpdateAccountBalance(accountBalance)
@@ -166,7 +166,7 @@ func RegisterWebhook(w http.ResponseWriter, r *http.Request) {
 	// Get URI from request
 	uri := string(data)
 
-	dbClient, _ := database.GetClient("baileybutler-syd")
+	dbClient, _ := database.GetClient(os.Getenv("GCP_PROJECT"))
 	defer dbClient.Close()
 
 	// Add new URI to firestore

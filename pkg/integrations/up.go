@@ -7,7 +7,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"os"
 
@@ -80,13 +79,13 @@ func (c *UpClient) GetTransaction(transactionId string) (model.TransactionResour
 	return resp.Data, nil
 }
 
-func ValidateWebhookEvent(payload io.Reader, signature string) bool {
+func ValidateWebhookEvent(payload []byte, signature string) bool {
 	sig, _ := hex.DecodeString(signature)
 
 	secret := os.Getenv("UP_WEBHOOK_SECRET")
 
 	mac := hmac.New(sha256.New, []byte(secret))
-	io.Copy(mac, payload)
+	mac.Write(payload)
 
 	calculatedSignature := mac.Sum(nil)
 

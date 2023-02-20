@@ -49,8 +49,15 @@ func TriggerBalanceUpdate(w http.ResponseWriter, r *http.Request) {
 	client := integrations.GetClient()
 	defer client.Close()
 
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		fmt.Println("read error:", err)
+		http.Error(w, "", http.StatusInternalServerError)
+		return
+	}
+
 	if !integrations.ValidateWebhookEvent(
-		r.Body,
+		body,
 		r.Header.Get("X-Up-Authenticity-Signature"),
 	) {
 		http.Error(w, "", http.StatusUnauthorized)
@@ -62,16 +69,9 @@ func TriggerBalanceUpdate(w http.ResponseWriter, r *http.Request) {
 
 	guid, _ := uuid.NewRandom()
 
-	b, err := io.ReadAll(r.Body)
-	if err != nil {
-		fmt.Println("read error:", err)
-		http.Error(w, "", http.StatusInternalServerError)
-		return
-	}
-
 	msg := &pubsub.Message{
 		ID:   guid.String(),
-		Data: b,
+		Data: body,
 	}
 
 	// Push event to pubsub topic

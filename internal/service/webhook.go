@@ -28,8 +28,17 @@ func SendWebhookEvent(uri string, account model.AccountResource, transaction mod
 		return err
 	}
 
+	desc := transaction.Attributes.Description
+
+	// Validate amount is negative
+	if len(desc) > 0 && desc[1] != '-' {
+		return nil
+	}
+
+	desc = desc[1:]
+
 	event := WebhookEvent{
-		TransactionDescription: transaction.Attributes.Description,
+		TransactionDescription: desc,
 		TransactionAmount:      transaction.Attributes.Amount.Value,
 		AccountBalance:         account.Attributes.Balance.Value,
 	}

@@ -95,14 +95,20 @@ func (c *Client) GetWebhookUris() ([]string, error) {
 		if err == io.EOF {
 			break
 		}
+		if err != nil {
+			fmt.Println("error getting doc:", err)
+			continue
+		}
 
 		data, err := doc.DataAt("uri")
 		if err != nil {
+			fmt.Println("error getting uri:", err)
 			continue
 		}
 
 		uri, ok := data.(string)
 		if !ok {
+			fmt.Println("error parsing uri to string. data:", data)
 			continue
 		}
 

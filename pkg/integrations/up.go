@@ -2,11 +2,16 @@ package integrations
 
 import (
 	"bytes"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
+	"os"
 
-	"github.com/baely/balance/common/model"
+	"github.com/baely/balance/pkg/model"
 )
 
 const upBaseUri = "https://api.up.com.au/api/v1/"
@@ -73,4 +78,18 @@ func (c *UpClient) GetTransaction(transactionId string) (model.TransactionResour
 	}
 
 	return resp.Data, nil
+}
+
+func ValidateWebhookEvent(payload io.Reader, signature string) bool {
+	sig, _ := hex.DecodeString(signature)
+
+	secret := os.Getenv("UP_WEBHOOK_SECRET")
+
+	mac := hmac.New(sha256.New, []byte(secret))
+	io.Copy(mac, payload)
+
+	calculatedSignature := mac.Sum(nil)
+
+	return hmac.Equal(sig, calculatedSignature)
+
 }

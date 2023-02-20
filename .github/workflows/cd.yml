@@ -47,6 +47,8 @@ jobs:
           deploy_timeout: 600
           runtime: "go119"
           region: "australia-southeast1"
+          secret_environment_variables: |-
+            UP_WEBHOOK_SECRET=${{ secrets.GSM_UP_WEBHOOK_TOKEN }}
 
   deploy-process:
     runs-on: "ubuntu-latest"

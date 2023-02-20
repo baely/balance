@@ -8,6 +8,7 @@ on:
 jobs:
   deploy-balance:
     runs-on: "ubuntu-latest"
+    environment: "prod"
     permissions:
       contents: "read"
       id-token: "write"
@@ -30,6 +31,7 @@ jobs:
 
   deploy-update:
     runs-on: "ubuntu-latest"
+    environment: "prod"
     permissions:
       contents: "read"
       id-token: "write"
@@ -52,6 +54,7 @@ jobs:
 
   deploy-process:
     runs-on: "ubuntu-latest"
+    environment: "prod"
     permissions:
       contents: "read"
       id-token: "write"
@@ -76,6 +79,7 @@ jobs:
 
   deploy-register:
     runs-on: "ubuntu-latest"
+    environment: "prod"
     permissions:
       contents: "read"
       id-token: "write"

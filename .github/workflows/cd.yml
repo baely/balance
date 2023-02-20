@@ -69,6 +69,8 @@ jobs:
           region: "australia-southeast1"
           event_trigger_type: "providers/cloud.pubsub/eventTypes/topic.publish"
           event_trigger_resource: "${{ secrets.PUBSUB_TOPIC_PROCESS }}"
+          secret_environment_variables: |-
+            UP_TOKEN=${{ secrets.GSM_UP_SECRET }}
 
   deploy-register:
     runs-on: "ubuntu-latest"

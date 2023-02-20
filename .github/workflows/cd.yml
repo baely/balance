@@ -25,6 +25,8 @@ jobs:
           deploy_timeout: 360
           runtime: "go119"
           region: "australia-southeast1"
+          secret_environment_variables: |-
+            UP_TOKEN=${{ secrets.GSM_UP_SECRET }}
 
   deploy-update:
     runs-on: "ubuntu-latest"

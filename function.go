@@ -13,9 +13,9 @@ import (
 	"strings"
 
 	"github.com/GoogleCloudPlatform/functions-framework-go/functions"
-	"github.com/baely/balance/common/database"
-	"github.com/baely/balance/common/integrations"
-	"github.com/baely/balance/common/model"
+	"github.com/baely/balance/pkg/database"
+	"github.com/baely/balance/pkg/integrations"
+	"github.com/baely/balance/pkg/model"
 	"github.com/google/uuid"
 )
 
@@ -49,6 +49,14 @@ func TriggerBalanceUpdate(w http.ResponseWriter, r *http.Request) {
 	client := integrations.GetClient()
 	defer client.Close()
 
+	if !integrations.ValidateWebhookEvent(
+		r.Body,
+		r.Header.Get("X-Up-Authenticity-Signature"),
+	) {
+		http.Error(w, "", http.StatusUnauthorized)
+		return
+	}
+
 	topic := client.Topic("webhook-events")
 
 	guid, _ := uuid.NewRandom()
@@ -57,6 +65,7 @@ func TriggerBalanceUpdate(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		fmt.Println("read error:", err)
 		http.Error(w, "", http.StatusInternalServerError)
+		return
 	}
 
 	msg := &pubsub.Message{
@@ -71,6 +80,7 @@ func TriggerBalanceUpdate(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		fmt.Println("publish error:", err)
 		http.Error(w, "", http.StatusInternalServerError)
+		return
 	}
 }
 
@@ -93,14 +103,10 @@ func ProcessTransaction(ctx context.Context, e event.Event) error {
 	var upEvent model.WebhookEventCallback
 	var msg MessagePublishedData
 
-	fmt.Println("raw data:", string(e.Data()))
-
 	err := e.DataAs(&msg)
 	if err != nil {
 		return err
 	}
-
-	fmt.Println("pubsub msg:", string(msg.Message.Data))
 
 	b := bytes.NewBuffer(msg.Message.Data)
 	json.NewDecoder(b).Decode(&upEvent)
@@ -126,6 +132,10 @@ func ProcessTransaction(ctx context.Context, e event.Event) error {
 	account, err := upClient.GetAccount(accountId)
 	if err != nil {
 		return err
+	}
+
+	if account.Attributes.AccountType != model.AccountTypeEnum("TRANSACTIONAL") {
+		return nil
 	}
 
 	accountBalance := account.Attributes.Balance.Value

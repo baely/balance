@@ -115,6 +115,11 @@ func ProcessTransaction(ctx context.Context, e event.Event) error {
 
 	json.Unmarshal(msg.Message.Data, &msg)
 
+	if upEvent.Data.Attributes.EventType != model.WebhookEventTypeEnum("TRANSACTION_CREATED") {
+		fmt.Println("Stop processing. Transaction ID:", upEvent.Data.Relationships.Transaction.Data.Id)
+		return nil
+	}
+
 	upClient := integrations.NewUpClient(os.Getenv("UP_TOKEN"))
 
 	// Retrieve transaction details

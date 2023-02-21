@@ -12,5 +12,9 @@
 # below:
 .git
 .gitignore
+.github
 
-node_modules
+firebase
+
+README.md
+system.png

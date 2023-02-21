@@ -10,12 +10,6 @@ import (
 	"github.com/baely/balance/internal/model"
 )
 
-//  outbound_msg = {
-//      "transaction_description": request_json["transaction_description"],
-//      "transaction_amount": "Example text",
-//      "account_balance": "Example text"
-//      }
-
 type WebhookEvent struct {
 	TransactionDescription string `json:"transaction_description"`
 	TransactionAmount      string `json:"transaction_amount"`
@@ -28,18 +22,19 @@ func SendWebhookEvent(uri string, account model.AccountResource, transaction mod
 		return err
 	}
 
-	desc := transaction.Attributes.Description
+	amt := transaction.Attributes.Amount.Value
 
 	// Validate amount is negative
-	if len(desc) > 0 && desc[1] != '-' {
+	if len(amt) == 0 || amt[0] != '-' {
+		fmt.Println("non neg amount.", transaction.Attributes.Description, amt)
 		return nil
 	}
 
-	desc = desc[1:]
+	amt = amt[1:]
 
 	event := WebhookEvent{
-		TransactionDescription: desc,
-		TransactionAmount:      transaction.Attributes.Amount.Value,
+		TransactionDescription: transaction.Attributes.Description,
+		TransactionAmount:      amt,
 		AccountBalance:         account.Attributes.Balance.Value,
 	}
 
@@ -58,6 +53,6 @@ func SendWebhookEvent(uri string, account model.AccountResource, transaction mod
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("invalid request")
 	}
-
+	
 	return nil
 }

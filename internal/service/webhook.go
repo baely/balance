@@ -16,13 +16,33 @@ type WebhookEvent struct {
 	AccountBalance         string `json:"account_balance"`
 }
 
+func getCurrencySymbol(currencyCode string) string {
+	symbols := map[string]string{
+		"JPY": "¥",
+	}
+
+	symbol, ok := symbols[currencyCode]
+
+	if !ok {
+		return "$"
+	}
+
+	return symbol
+}
+
 func SendWebhookEvent(uri string, account model.AccountResource, transaction model.TransactionResource) error {
 	_, err := url.Parse(uri)
 	if err != nil {
 		return err
 	}
 
+	foreign := false
 	amt := transaction.Attributes.Amount.Value
+
+	if transaction.Attributes.ForeignAmount != nil {
+		foreign = true
+		amt = transaction.Attributes.ForeignAmount.Value
+	}
 
 	// Validate amount is negative
 	if len(amt) == 0 || amt[0] != '-' {
@@ -32,9 +52,17 @@ func SendWebhookEvent(uri string, account model.AccountResource, transaction mod
 
 	amt = amt[1:]
 
+	var amtText string
+	if foreign {
+		currencySymbol := getCurrencySymbol(transaction.Attributes.ForeignAmount.CurrencyCode)
+		amtText = fmt.Sprintf("%s%s", currencySymbol, amt)
+	} else {
+		amtText = fmt.Sprintf("$%s", amt)
+	}
+
 	event := WebhookEvent{
 		TransactionDescription: transaction.Attributes.Description,
-		TransactionAmount:      amt,
+		TransactionAmount:      amtText,
 		AccountBalance:         account.Attributes.Balance.Value,
 	}
 
@@ -53,6 +81,6 @@ func SendWebhookEvent(uri string, account model.AccountResource, transaction mod
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("invalid request")
 	}
-	
+
 	return nil
 }

@@ -19,6 +19,10 @@ type WebhookEvent struct {
 func getCurrencySymbol(currencyCode string) string {
 	symbols := map[string]string{
 		"JPY": "¥",
+		"SGD": "S$",
+		"USD": "US$",
+		"NTD": "NT$",
+		"SKW": "₩",
 	}
 
 	symbol, ok := symbols[currencyCode]

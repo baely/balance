@@ -22,7 +22,7 @@ jobs:
         with:
           name: "balance"
           deploy_timeout: 600
-          runtime: "go119"
+          runtime: "go121"
           region: "australia-southeast1"
           env_vars: GCP_PROJECT=${{ secrets.GCP_PROJECT }}
           secret_environment_variables: |-
@@ -42,7 +42,7 @@ jobs:
         with:
           name: "trigger-balance-update"
           deploy_timeout: 600
-          runtime: "go119"
+          runtime: "go121"
           region: "australia-southeast1"
           env_vars: GCP_PROJECT=${{ secrets.GCP_PROJECT }}
           secret_environment_variables: |-
@@ -62,7 +62,7 @@ jobs:
         with:
           name: "process-transaction"
           deploy_timeout: 600
-          runtime: "go119"
+          runtime: "go121"
           region: "australia-southeast1"
           env_vars: GCP_PROJECT=${{ secrets.GCP_PROJECT }}
           event_trigger_type: "providers/cloud.pubsub/eventTypes/topic.publish"
@@ -84,7 +84,7 @@ jobs:
         with:
           name: "register"
           deploy_timeout: 600
-          runtime: "go119"
+          runtime: "go121"
           region: "australia-southeast1"
           env_vars: GCP_PROJECT=${{ secrets.GCP_PROJECT }}
   deploy-prod:
@@ -103,7 +103,7 @@ jobs:
         with:
           name: "balance"
           deploy_timeout: 600
-          runtime: "go119"
+          runtime: "go121"
           region: "australia-southeast1"
           env_vars: GCP_PROJECT=${{ secrets.GCP_PROJECT }}
           secret_environment_variables: |-
@@ -112,7 +112,7 @@ jobs:
         with:
           name: "trigger-balance-update"
           deploy_timeout: 600
-          runtime: "go119"
+          runtime: "go121"
           region: "australia-southeast1"
           env_vars: GCP_PROJECT=${{ secrets.GCP_PROJECT }}
           secret_environment_variables: |-
@@ -121,7 +121,7 @@ jobs:
         with:
           name: "process-transaction"
           deploy_timeout: 600
-          runtime: "go119"
+          runtime: "go121"
           region: "australia-southeast1"
           env_vars: GCP_PROJECT=${{ secrets.GCP_PROJECT }}
           event_trigger_type: "providers/cloud.pubsub/eventTypes/topic.publish"
@@ -132,6 +132,6 @@ jobs:
         with:
           name: "register"
           deploy_timeout: 600
-          runtime: "go119"
+          runtime: "go121"
           region: "australia-southeast1"
           env_vars: GCP_PROJECT=${{ secrets.GCP_PROJECT }}

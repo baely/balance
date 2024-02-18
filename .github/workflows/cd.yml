@@ -7,90 +7,90 @@ on:
   workflow_dispatch:
 
 jobs:
-  deploy-dev-balance:
-    runs-on: "ubuntu-latest"
-    environment: "dev"
-    permissions:
-      contents: "read"
-      id-token: "write"
-    steps:
-      - uses: "actions/checkout@v3"
-      - uses: "google-github-actions/auth@v1"
-        with:
-          credentials_json: "${{ secrets.SERVICE_TOKEN }}"
-      - uses: "google-github-actions/deploy-cloud-functions@v1"
-        with:
-          name: "balance"
-          deploy_timeout: 600
-          runtime: "go121"
-          region: "australia-southeast1"
-          env_vars: GCP_PROJECT=${{ secrets.GCP_PROJECT }}
-          secret_environment_variables: |-
-            UP_TOKEN=${{ secrets.GSM_UP_SECRET }}
-  deploy-dev-trigger:
-    runs-on: "ubuntu-latest"
-    environment: "dev"
-    permissions:
-      contents: "read"
-      id-token: "write"
-    steps:
-      - uses: "actions/checkout@v3"
-      - uses: "google-github-actions/auth@v1"
-        with:
-          credentials_json: "${{ secrets.SERVICE_TOKEN }}"
-      - uses: "google-github-actions/deploy-cloud-functions@v1"
-        with:
-          name: "trigger-balance-update"
-          deploy_timeout: 600
-          runtime: "go121"
-          region: "australia-southeast1"
-          env_vars: GCP_PROJECT=${{ secrets.GCP_PROJECT }}
-          secret_environment_variables: |-
-            UP_WEBHOOK_SECRET=${{ secrets.GSM_UP_WEBHOOK_TOKEN }}
-  deploy-dev-process:
-    runs-on: "ubuntu-latest"
-    environment: "dev"
-    permissions:
-      contents: "read"
-      id-token: "write"
-    steps:
-      - uses: "actions/checkout@v3"
-      - uses: "google-github-actions/auth@v1"
-        with:
-          credentials_json: "${{ secrets.SERVICE_TOKEN }}"
-      - uses: "google-github-actions/deploy-cloud-functions@v1"
-        with:
-          name: "process-transaction"
-          deploy_timeout: 600
-          runtime: "go121"
-          region: "australia-southeast1"
-          env_vars: GCP_PROJECT=${{ secrets.GCP_PROJECT }}
-          event_trigger_type: "providers/cloud.pubsub/eventTypes/topic.publish"
-          event_trigger_resource: "${{ secrets.PUBSUB_TOPIC_PROCESS }}"
-          secret_environment_variables: |-
-            UP_TOKEN=${{ secrets.GSM_UP_SECRET }}
-  deploy-dev-register:
-    runs-on: "ubuntu-latest"
-    environment: "dev"
-    permissions:
-      contents: "read"
-      id-token: "write"
-    steps:
-      - uses: "actions/checkout@v3"
-      - uses: "google-github-actions/auth@v1"
-        with:
-          credentials_json: "${{ secrets.SERVICE_TOKEN }}"
-      - uses: "google-github-actions/deploy-cloud-functions@v1"
-        with:
-          name: "register"
-          deploy_timeout: 600
-          runtime: "go121"
-          region: "australia-southeast1"
-          env_vars: GCP_PROJECT=${{ secrets.GCP_PROJECT }}
+#  deploy-dev-balance:
+#    runs-on: "ubuntu-latest"
+#    environment: "dev"
+#    permissions:
+#      contents: "read"
+#      id-token: "write"
+#    steps:
+#      - uses: "actions/checkout@v3"
+#      - uses: "google-github-actions/auth@v1"
+#        with:
+#          credentials_json: "${{ secrets.SERVICE_TOKEN }}"
+#      - uses: "google-github-actions/deploy-cloud-functions@v1"
+#        with:
+#          name: "balance"
+#          deploy_timeout: 600
+#          runtime: "go121"
+#          region: "australia-southeast1"
+#          env_vars: GCP_PROJECT=${{ secrets.GCP_PROJECT }}
+#          secret_environment_variables: |-
+#            UP_TOKEN=${{ secrets.GSM_UP_SECRET }}
+#  deploy-dev-trigger:
+#    runs-on: "ubuntu-latest"
+#    environment: "dev"
+#    permissions:
+#      contents: "read"
+#      id-token: "write"
+#    steps:
+#      - uses: "actions/checkout@v3"
+#      - uses: "google-github-actions/auth@v1"
+#        with:
+#          credentials_json: "${{ secrets.SERVICE_TOKEN }}"
+#      - uses: "google-github-actions/deploy-cloud-functions@v1"
+#        with:
+#          name: "trigger-balance-update"
+#          deploy_timeout: 600
+#          runtime: "go121"
+#          region: "australia-southeast1"
+#          env_vars: GCP_PROJECT=${{ secrets.GCP_PROJECT }}
+#          secret_environment_variables: |-
+#            UP_WEBHOOK_SECRET=${{ secrets.GSM_UP_WEBHOOK_TOKEN }}
+#  deploy-dev-process:
+#    runs-on: "ubuntu-latest"
+#    environment: "dev"
+#    permissions:
+#      contents: "read"
+#      id-token: "write"
+#    steps:
+#      - uses: "actions/checkout@v3"
+#      - uses: "google-github-actions/auth@v1"
+#        with:
+#          credentials_json: "${{ secrets.SERVICE_TOKEN }}"
+#      - uses: "google-github-actions/deploy-cloud-functions@v1"
+#        with:
+#          name: "process-transaction"
+#          deploy_timeout: 600
+#          runtime: "go121"
+#          region: "australia-southeast1"
+#          env_vars: GCP_PROJECT=${{ secrets.GCP_PROJECT }}
+#          event_trigger_type: "providers/cloud.pubsub/eventTypes/topic.publish"
+#          event_trigger_resource: "${{ secrets.PUBSUB_TOPIC_PROCESS }}"
+#          secret_environment_variables: |-
+#            UP_TOKEN=${{ secrets.GSM_UP_SECRET }}
+#  deploy-dev-register:
+#    runs-on: "ubuntu-latest"
+#    environment: "dev"
+#    permissions:
+#      contents: "read"
+#      id-token: "write"
+#    steps:
+#      - uses: "actions/checkout@v3"
+#      - uses: "google-github-actions/auth@v1"
+#        with:
+#          credentials_json: "${{ secrets.SERVICE_TOKEN }}"
+#      - uses: "google-github-actions/deploy-cloud-functions@v1"
+#        with:
+#          name: "register"
+#          deploy_timeout: 600
+#          runtime: "go121"
+#          region: "australia-southeast1"
+#          env_vars: GCP_PROJECT=${{ secrets.GCP_PROJECT }}
   deploy-prod:
     runs-on: "ubuntu-latest"
     environment: "prod"
-    needs: [deploy-dev-balance, deploy-dev-trigger, deploy-dev-process, deploy-dev-register]
+#    needs: [deploy-dev-balance, deploy-dev-trigger, deploy-dev-process, deploy-dev-register]
     permissions:
       contents: "read"
       id-token: "write"

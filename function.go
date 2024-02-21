@@ -107,6 +107,8 @@ func ProcessTransaction(ctx context.Context, e event.Event) error {
 	var upEvent model.WebhookEventCallback
 	var msg MessagePublishedData
 
+	fmt.Println("processing transaction event")
+
 	err := e.DataAs(&msg)
 	if err != nil {
 		return err

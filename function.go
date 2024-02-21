@@ -156,7 +156,7 @@ func ProcessTransaction(ctx context.Context, e event.Event) error {
 	if err != nil {
 		return err
 	}
-	fmt.Println("account:", account)
+	//fmt.Println("account:", account)
 
 	if account.Attributes.AccountType != model.AccountTypeEnum("TRANSACTIONAL") {
 		fmt.Println("account type:", account.Attributes.AccountType)

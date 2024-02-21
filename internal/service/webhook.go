@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"net/url"
 
@@ -21,7 +22,8 @@ type WebhookEvent struct {
 func formatCurrency(value string, iso string) string {
 	code, err := currency.ParseISO(value)
 	if err != nil {
-		return "$"
+		log.Printf("failed to parse currency code: %v", err)
+		return value + " " + iso
 	}
 
 	s := code.String() + value + " (" + iso + ")"

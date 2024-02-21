@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"sync"
 
 	"cloud.google.com/go/pubsub"
 	"github.com/cloudevents/sdk-go/v2/event"
@@ -156,16 +157,20 @@ func ProcessTransaction(ctx context.Context, e event.Event) error {
 
 	webhookUris, _ := dbClient.GetWebhookUris()
 
+	wg := &sync.WaitGroup{}
 	fmt.Println("sending webhook events")
 	for _, uri := range webhookUris {
+		wg.Add(1)
 		go func(uri string) {
 			fmt.Println("sending webhook to:", uri)
 			if err := service.SendWebhookEvent(uri, account, transaction); err != nil {
 				fmt.Println("error sending webhook:", err)
 			}
+			wg.Done()
 		}(uri)
 	}
 
+	wg.Wait()
 	return nil
 }
 

@@ -107,64 +107,47 @@ func ProcessTransaction(ctx context.Context, e event.Event) error {
 	var upEvent model.WebhookEventCallback
 	var msg MessagePublishedData
 
-	fmt.Println("processing transaction event")
-
 	err := e.DataAs(&msg)
 	if err != nil {
 		return err
 	}
 
-	fmt.Println("msg:", msg)
-
 	b := bytes.NewBuffer(msg.Message.Data)
 	json.NewDecoder(b).Decode(&upEvent)
 
-	fmt.Println("upEvent:", upEvent)
-
 	json.Unmarshal(msg.Message.Data, &msg)
-
-	fmt.Println("msg:", msg)
 
 	if upEvent.Data.Attributes.EventType != model.WebhookEventTypeEnum("TRANSACTION_CREATED") {
 		fmt.Println("Stop processing. Transaction ID:", upEvent.Data.Relationships.Transaction.Data.Id)
 		return nil
 	}
 
-	fmt.Println("Processing transaction ID:", upEvent.Data.Relationships.Transaction.Data.Id)
-
 	upClient := integrations.NewUpClient(os.Getenv("UP_TOKEN"))
 
 	// Retrieve transaction details
 	eventTransaction := upEvent.Data.Relationships.Transaction
-
-	fmt.Println("eventTransaction:", eventTransaction)
 
 	if eventTransaction == nil {
 		fmt.Println("no transaction details")
 		return nil
 	}
 	transaction, err := upClient.GetTransaction(eventTransaction.Data.Id)
-	fmt.Println("transaction:", transaction)
 	if err != nil {
 		return err
 	}
 
 	// Retrieve account details
 	accountId := transaction.Relationships.Account.Data.Id
-	fmt.Println("accountId:", accountId)
 	account, err := upClient.GetAccount(accountId)
 	if err != nil {
 		return err
 	}
-	//fmt.Println("account:", account)
 
 	if account.Attributes.AccountType != model.AccountTypeEnum("TRANSACTIONAL") {
-		fmt.Println("account type:", account.Attributes.AccountType)
 		return nil
 	}
 
 	accountBalance := account.Attributes.Balance.Value
-	fmt.Println("account balance:", accountBalance)
 
 	// Update datastore
 	dbClient, _ := database.GetClient(os.Getenv("GCP_PROJECT"))

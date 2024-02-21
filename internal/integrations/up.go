@@ -45,6 +45,10 @@ func (c *UpClient) request(endpoint string, ret interface{}) error {
 		return err
 	}
 
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("request failed with status %d", resp.StatusCode)
+	}
+
 	err = json.NewDecoder(resp.Body).Decode(ret)
 	if err != nil {
 		return err

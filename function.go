@@ -158,7 +158,7 @@ func ProcessTransaction(ctx context.Context, e event.Event) error {
 	webhookUris, _ := dbClient.GetWebhookUris()
 
 	wg := &sync.WaitGroup{}
-	fmt.Println("sending webhook events")
+	fmt.Println("sending webhook events. count:", len(webhookUris))
 	for _, uri := range webhookUris {
 		wg.Add(1)
 		go func(uri string) {

@@ -4,11 +4,9 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"net/url"
-
-	"golang.org/x/text/currency"
+	"strings"
 
 	"github.com/baely/balance/internal/model"
 )
@@ -20,13 +18,19 @@ type WebhookEvent struct {
 }
 
 func formatCurrency(value string, iso string) string {
-	code, err := currency.ParseISO(value)
-	if err != nil {
-		log.Printf("failed to parse currency code: %v", err)
+	iso = strings.ToUpper(iso)
+	code, ok := map[string]string{
+		"AUD": "$",
+		"JPY": "¥",
+		"SGD": "S$",
+		"KRW": "₩",
+		"TWD": "NT$",
+	}[iso]
+	if !ok {
 		return value + " " + iso
 	}
 
-	s := code.String() + value + " (" + iso + ")"
+	s := code + value
 	return s
 }
 

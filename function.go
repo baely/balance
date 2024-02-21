@@ -10,11 +10,12 @@ import (
 	"os"
 
 	"cloud.google.com/go/pubsub"
+	"github.com/cloudevents/sdk-go/v2/event"
+
 	"github.com/baely/balance/internal/database"
 	"github.com/baely/balance/internal/integrations"
 	"github.com/baely/balance/internal/model"
 	"github.com/baely/balance/internal/service"
-	"github.com/cloudevents/sdk-go/v2/event"
 
 	"github.com/GoogleCloudPlatform/functions-framework-go/functions"
 	"github.com/google/uuid"
@@ -155,8 +156,10 @@ func ProcessTransaction(ctx context.Context, e event.Event) error {
 
 	webhookUris, _ := dbClient.GetWebhookUris()
 
+	fmt.Println("sending webhook events")
 	for _, uri := range webhookUris {
 		go func(uri string) {
+			fmt.Println("sending webhook to:", uri)
 			if err := service.SendWebhookEvent(uri, account, transaction); err != nil {
 				fmt.Println("error sending webhook:", err)
 			}

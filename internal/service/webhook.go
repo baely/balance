@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strings"
 
 	"github.com/baely/balance/internal/model"
 )
@@ -16,22 +17,21 @@ type WebhookEvent struct {
 	AccountBalance         string `json:"account_balance"`
 }
 
-func getCurrencySymbol(currencyCode string) string {
-	symbols := map[string]string{
+func formatCurrency(value string, iso string) string {
+	iso = strings.ToUpper(iso)
+	code, ok := map[string]string{
+		"AUD": "$",
 		"JPY": "¥",
 		"SGD": "S$",
-		"USD": "US$",
-		"NTD": "NT$",
-		"SKW": "₩",
-	}
-
-	symbol, ok := symbols[currencyCode]
-
+		"KRW": "₩",
+		"TWD": "NT$",
+	}[iso]
 	if !ok {
-		return "$"
+		return value + " " + iso
 	}
 
-	return symbol
+	s := code + value
+	return s
 }
 
 func SendWebhookEvent(uri string, account model.AccountResource, transaction model.TransactionResource) error {
@@ -56,12 +56,9 @@ func SendWebhookEvent(uri string, account model.AccountResource, transaction mod
 
 	amt = amt[1:]
 
-	var amtText string
+	amtText := fmt.Sprintf("$%s", amt)
 	if foreign {
-		currencySymbol := getCurrencySymbol(transaction.Attributes.ForeignAmount.CurrencyCode)
-		amtText = fmt.Sprintf("%s%s", currencySymbol, amt)
-	} else {
-		amtText = fmt.Sprintf("$%s", amt)
+		amtText = formatCurrency(amt, transaction.Attributes.ForeignAmount.CurrencyCode)
 	}
 
 	event := WebhookEvent{

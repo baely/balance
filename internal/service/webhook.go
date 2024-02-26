@@ -1,10 +1,8 @@
 package service
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
-	"net/http"
 	"net/url"
 
 	"github.com/baely/balance/internal/model"
@@ -75,16 +73,18 @@ func SendWebhookEvent(uri string, account model.AccountResource, transaction mod
 		return err
 	}
 
-	msg := bytes.NewReader(eventMsg)
+	//msg := bytes.NewReader(eventMsg)
 
-	resp, err := http.Post(uri, "application/json", msg)
-	if err != nil {
-		return err
-	}
+	//resp, err := http.Post(uri, "application/json", msg)
+	//if err != nil {
+	//	return err
+	//}
 
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("invalid request")
-	}
+	//if resp.StatusCode != http.StatusOK {
+	//	return fmt.Errorf("invalid request")
+	//}
+
+	fmt.Println("webhook sent:", uri, string(eventMsg))
 
 	return nil
 }

@@ -9,10 +9,10 @@ RUN go mod download
 
 COPY . .
 
-RUN go build -o /go/bin/app
+RUN go build -o /balance
 
 FROM alpine
 
-COPY --from=builder /go/bin/app /go/bin/app
+COPY --from=builder /balance /balance
 
-ENTRYPOINT ["/go/bin/app"]
+ENTRYPOINT ["/balance"]

@@ -1,7 +1,6 @@
-package balance
+package main
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -10,31 +9,53 @@ import (
 	"os"
 
 	"cloud.google.com/go/pubsub"
+	"github.com/go-chi/chi"
+	"github.com/google/uuid"
+
 	"github.com/baely/balance/internal/database"
 	"github.com/baely/balance/internal/integrations"
 	"github.com/baely/balance/internal/model"
 	"github.com/baely/balance/internal/service"
-	"github.com/cloudevents/sdk-go/v2/event"
-
-	"github.com/GoogleCloudPlatform/functions-framework-go/functions"
-	"github.com/google/uuid"
 )
 
-func init() {
-	functions.HTTP("balance", RetrieveAccountBalance)
-	functions.HTTP("trigger-balance-update", TriggerBalanceUpdate)
-	functions.CloudEvent("process-transaction", ProcessTransaction)
-	functions.HTTP("register", RegisterWebhook)
+type Server struct {
+	http.Server
+}
+
+func newServer() *Server {
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+
+	r := chi.NewRouter()
+
+	r.HandleFunc("/account-balance", RetrieveAccountBalance)
+	r.HandleFunc("/webhook", TriggerBalanceUpdate)
+	r.HandleFunc("/register", RegisterWebhook)
+	r.HandleFunc("/process", ProcessTransaction)
+
+	return &Server{
+		http.Server{
+			Addr:    fmt.Sprintf(":%s", port),
+			Handler: r,
+		},
+	}
+}
+
+func (s *Server) Start() error {
+	fmt.Println("Server listening on port", s.Addr)
+	return s.ListenAndServe()
 }
 
 func RetrieveAccountBalance(w http.ResponseWriter, r *http.Request) {
 	// Retrieve current account balance from firestore
 	dbClient, err := database.GetClient(os.Getenv("GCP_PROJECT"))
-	defer dbClient.Close()
 	if err != nil {
 		fmt.Println(err)
 		http.Error(w, "", http.StatusInternalServerError)
 	}
+	defer dbClient.Close()
 
 	accountBalance, err := dbClient.GetAccountBalance()
 	if err != nil {
@@ -100,24 +121,27 @@ type PubSubMessage struct {
 	Data []byte `json:"data"`
 }
 
-func ProcessTransaction(ctx context.Context, e event.Event) error {
-	// Process incoming event
-	var upEvent model.WebhookEventCallback
-	var msg MessagePublishedData
+func unmarshall[T any](r io.Reader, v T) error {
+	var e MessagePublishedData
 
-	err := e.DataAs(&msg)
-	if err != nil {
+	if err := json.NewDecoder(r).Decode(&e); err != nil {
 		return err
 	}
+	return json.Unmarshal(e.Message.Data, &v)
+}
 
-	b := bytes.NewBuffer(msg.Message.Data)
-	json.NewDecoder(b).Decode(&upEvent)
-
-	json.Unmarshal(msg.Message.Data, &msg)
+func ProcessTransaction(w http.ResponseWriter, r *http.Request) {
+	var upEvent model.WebhookEventCallback
+	err := unmarshall(r.Body, &upEvent)
+	if err != nil {
+		fmt.Println("unmarshall error:", err)
+		http.Error(w, "", http.StatusBadRequest)
+		return
+	}
 
 	if upEvent.Data.Attributes.EventType != model.WebhookEventTypeEnum("TRANSACTION_CREATED") {
 		fmt.Println("Stop processing. Transaction ID:", upEvent.Data.Relationships.Transaction.Data.Id)
-		return nil
+		return
 	}
 
 	upClient := integrations.NewUpClient(os.Getenv("UP_TOKEN"))
@@ -127,28 +151,37 @@ func ProcessTransaction(ctx context.Context, e event.Event) error {
 
 	if eventTransaction == nil {
 		fmt.Println("no transaction details")
-		return nil
+		return
 	}
 	transaction, err := upClient.GetTransaction(eventTransaction.Data.Id)
 	if err != nil {
-		return err
+		fmt.Println("error retrieving transaction:", err)
+		http.Error(w, "", http.StatusInternalServerError)
+		return
 	}
 
 	// Retrieve account details
 	accountId := transaction.Relationships.Account.Data.Id
 	account, err := upClient.GetAccount(accountId)
 	if err != nil {
-		return err
+		fmt.Println("error retrieving account:", err)
+		http.Error(w, "", http.StatusInternalServerError)
+		return
 	}
 
 	if account.Attributes.AccountType != model.AccountTypeEnum("TRANSACTIONAL") {
-		return nil
+		return
 	}
 
 	accountBalance := account.Attributes.Balance.Value
 
 	// Update datastore
-	dbClient, _ := database.GetClient(os.Getenv("GCP_PROJECT"))
+	dbClient, err := database.GetClient(os.Getenv("GCP_PROJECT"))
+	if err != nil {
+		fmt.Println("database error:", err)
+		http.Error(w, "", http.StatusInternalServerError)
+		return
+	}
 	defer dbClient.Close()
 
 	dbClient.UpdateAccountBalance(accountBalance)
@@ -163,7 +196,7 @@ func ProcessTransaction(ctx context.Context, e event.Event) error {
 		}(uri)
 	}
 
-	return nil
+	return
 }
 
 func RegisterWebhook(w http.ResponseWriter, r *http.Request) {
@@ -176,7 +209,11 @@ func RegisterWebhook(w http.ResponseWriter, r *http.Request) {
 	// Get URI from request
 	uri := string(data)
 
-	dbClient, _ := database.GetClient(os.Getenv("GCP_PROJECT"))
+	dbClient, err := database.GetClient(os.Getenv("GCP_PROJECT"))
+	if err != nil {
+		fmt.Println("database error:", err)
+		http.Error(w, "", http.StatusInternalServerError)
+	}
 	defer dbClient.Close()
 
 	// Add new URI to firestore

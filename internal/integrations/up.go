@@ -94,5 +94,4 @@ func ValidateWebhookEvent(payload []byte, signature string) bool {
 	calculatedSignature := mac.Sum(nil)
 
 	return hmac.Equal(sig, calculatedSignature)
-
 }

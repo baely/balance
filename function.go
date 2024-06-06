@@ -1,7 +1,6 @@
-package balance
+package main
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -13,8 +12,6 @@ import (
 	"cloud.google.com/go/pubsub"
 	"github.com/go-chi/chi"
 	"github.com/google/uuid"
-
-	"github.com/cloudevents/sdk-go/v2/event"
 
 	"github.com/baely/balance/internal/database"
 	"github.com/baely/balance/internal/integrations"
@@ -206,7 +203,7 @@ func ProcessTransaction(w http.ResponseWriter, r *http.Request) {
 	}
 
 	wg.Wait()
-	return nil
+	return
 }
 
 func RegisterWebhook(w http.ResponseWriter, r *http.Request) {

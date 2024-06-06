@@ -10,7 +10,7 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/baely/balance/internal/model"
+	"github.com/baely/balance/pkg/model"
 )
 
 const upBaseUri = "https://api.up.com.au/api/v1/"

@@ -12,8 +12,8 @@ import (
 	"cloud.google.com/go/pubsub"
 	"github.com/baely/balance/internal/database"
 	"github.com/baely/balance/internal/integrations"
-	"github.com/baely/balance/internal/model"
 	"github.com/baely/balance/internal/service"
+	"github.com/baely/balance/pkg/model"
 	"github.com/cloudevents/sdk-go/v2/event"
 
 	"github.com/GoogleCloudPlatform/functions-framework-go/functions"

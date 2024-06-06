@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/baely/balance/internal/model"
+	"github.com/baely/balance/pkg/model"
 )
 
 type WebhookEvent struct {

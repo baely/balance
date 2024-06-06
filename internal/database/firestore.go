@@ -84,11 +84,11 @@ func (c *Client) AddWebhook(uri string) error {
 	return nil
 }
 
-func (c *Client) GetWebhookUris() ([]string, error) {
+func (c *Client) getUris(path string) ([]string, error) {
 	var uris []string
 
 	ctx := context.Background()
-	iter := c.firestoreClient.Collection("webhooks").Documents(ctx)
+	iter := c.firestoreClient.Collection(path).Documents(ctx)
 
 	for {
 		doc, err := iter.Next()
@@ -116,4 +116,12 @@ func (c *Client) GetWebhookUris() ([]string, error) {
 	}
 
 	return uris, nil
+}
+
+func (c *Client) GetWebhookUris() ([]string, error) {
+	return c.getUris("webhooks")
+}
+
+func (c *Client) GetRawWebhookUris() ([]string, error) {
+	return c.getUris("raw-webhooks")
 }

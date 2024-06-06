@@ -154,10 +154,19 @@ func ProcessTransaction(ctx context.Context, e event.Event) error {
 	dbClient.UpdateAccountBalance(accountBalance)
 
 	webhookUris, _ := dbClient.GetWebhookUris()
+	rawWebhookUris, _ := dbClient.GetRawWebhookUris()
 
 	for _, uri := range webhookUris {
 		go func(uri string) {
 			if err := service.SendWebhookEvent(uri, account, transaction); err != nil {
+				fmt.Println("error sending webhook:", err)
+			}
+		}(uri)
+	}
+
+	for _, uri := range rawWebhookUris {
+		go func(uri string) {
+			if err := service.SendRawWebhookEvent(uri, account, transaction); err != nil {
 				fmt.Println("error sending webhook:", err)
 			}
 		}(uri)

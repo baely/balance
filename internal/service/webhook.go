@@ -16,6 +16,11 @@ type WebhookEvent struct {
 	AccountBalance         string `json:"account_balance"`
 }
 
+type RawWebhookEvent struct {
+	Account     model.AccountResource     `json:"account"`
+	Transaction model.TransactionResource `json:"transaction"`
+}
+
 func getCurrencySymbol(currencyCode string) string {
 	symbols := map[string]string{
 		"JPY": "¥",
@@ -84,6 +89,36 @@ func SendWebhookEvent(uri string, account model.AccountResource, transaction mod
 
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("invalid request")
+	}
+
+	return nil
+}
+
+func SendRawWebhookEvent(uri string, account model.AccountResource, transaction model.TransactionResource) error {
+	_, err := url.Parse(uri)
+	if err != nil {
+		return err
+	}
+
+	event := RawWebhookEvent{
+		Account:     account,
+		Transaction: transaction,
+	}
+
+	eventMsg, err := json.Marshal(event)
+	if err != nil {
+		return err
+	}
+
+	msg := bytes.NewReader(eventMsg)
+
+	resp, err := http.Post(uri, "application/json", msg)
+	if err != nil {
+		return err
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("failed to post")
 	}
 
 	return nil

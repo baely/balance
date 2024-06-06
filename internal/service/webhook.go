@@ -10,17 +10,6 @@ import (
 	"github.com/baely/balance/pkg/model"
 )
 
-type WebhookEvent struct {
-	TransactionDescription string `json:"transaction_description"`
-	TransactionAmount      string `json:"transaction_amount"`
-	AccountBalance         string `json:"account_balance"`
-}
-
-type RawWebhookEvent struct {
-	Account     model.AccountResource     `json:"account"`
-	Transaction model.TransactionResource `json:"transaction"`
-}
-
 func getCurrencySymbol(currencyCode string) string {
 	symbols := map[string]string{
 		"JPY": "¥",
@@ -69,7 +58,7 @@ func SendWebhookEvent(uri string, account model.AccountResource, transaction mod
 		amtText = fmt.Sprintf("$%s", amt)
 	}
 
-	event := WebhookEvent{
+	event := model.WebhookEvent{
 		TransactionDescription: transaction.Attributes.Description,
 		TransactionAmount:      amtText,
 		AccountBalance:         account.Attributes.Balance.Value,
@@ -100,7 +89,7 @@ func SendRawWebhookEvent(uri string, account model.AccountResource, transaction 
 		return err
 	}
 
-	event := RawWebhookEvent{
+	event := model.RawWebhookEvent{
 		Account:     account,
 		Transaction: transaction,
 	}

@@ -1,16 +1,20 @@
-package main
+package balance
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
+	"sync"
 
 	"cloud.google.com/go/pubsub"
 	"github.com/go-chi/chi"
 	"github.com/google/uuid"
+
+	"github.com/cloudevents/sdk-go/v2/event"
 
 	"github.com/baely/balance/internal/database"
 	"github.com/baely/balance/internal/integrations"
@@ -188,15 +192,21 @@ func ProcessTransaction(w http.ResponseWriter, r *http.Request) {
 
 	webhookUris, _ := dbClient.GetWebhookUris()
 
+	wg := &sync.WaitGroup{}
+	fmt.Println("sending webhook events. count:", len(webhookUris))
 	for _, uri := range webhookUris {
+		wg.Add(1)
 		go func(uri string) {
+			fmt.Println("sending webhook to:", uri)
 			if err := service.SendWebhookEvent(uri, account, transaction); err != nil {
 				fmt.Println("error sending webhook:", err)
 			}
+			wg.Done()
 		}(uri)
 	}
 
-	return
+	wg.Wait()
+	return nil
 }
 
 func RegisterWebhook(w http.ResponseWriter, r *http.Request) {

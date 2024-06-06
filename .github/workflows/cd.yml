@@ -52,10 +52,10 @@ jobs:
         with:
           project_id: baileybutler-syd
           service: balance
-          image: asia-southeast1-docker.pkg.dev/baileybutler-syd/balance/officbalanceetracker:${{ github.sha }}
+          image: asia-southeast1-docker.pkg.dev/baileybutler-syd/balance/balance:${{ github.sha }}
           region: asia-southeast1
           env_vars: GCP_PROJECT=${{ secrets.GCP_PROJECT }}
-          secret_environment_variables: |-
-            UP_TOKEN=${{ secrets.GSM_UP_SECRET }}
-            UP_WEBHOOK_SECRET=${{ secrets.GSM_UP_WEBHOOK_TOKEN }}
+          secrets: |
+            UP_TOKEN=${{ secrets.GSM_UP_SECRET }}:latest
+            UP_WEBHOOK_SECRET=${{ secrets.GSM_UP_WEBHOOK_TOKEN }}:latest
           flags: "--allow-unauthenticated"

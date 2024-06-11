@@ -8,14 +8,8 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/baely/balance/internal/model"
+	"github.com/baely/balance/pkg/model"
 )
-
-type WebhookEvent struct {
-	TransactionDescription string `json:"transaction_description"`
-	TransactionAmount      string `json:"transaction_amount"`
-	AccountBalance         string `json:"account_balance"`
-}
 
 func formatCurrency(value string, iso string) string {
 	iso = strings.ToUpper(iso)
@@ -61,7 +55,7 @@ func SendWebhookEvent(uri string, account model.AccountResource, transaction mod
 		amtText = formatCurrency(amt, transaction.Attributes.ForeignAmount.CurrencyCode)
 	}
 
-	event := WebhookEvent{
+	event := model.WebhookEvent{
 		TransactionDescription: transaction.Attributes.Description,
 		TransactionAmount:      amtText,
 		AccountBalance:         account.Attributes.Balance.Value,
@@ -81,6 +75,36 @@ func SendWebhookEvent(uri string, account model.AccountResource, transaction mod
 
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("invalid request")
+	}
+
+	return nil
+}
+
+func SendRawWebhookEvent(uri string, account model.AccountResource, transaction model.TransactionResource) error {
+	_, err := url.Parse(uri)
+	if err != nil {
+		return err
+	}
+
+	event := model.RawWebhookEvent{
+		Account:     account,
+		Transaction: transaction,
+	}
+
+	eventMsg, err := json.Marshal(event)
+	if err != nil {
+		return err
+	}
+
+	msg := bytes.NewReader(eventMsg)
+
+	resp, err := http.Post(uri, "application/json", msg)
+	if err != nil {
+		return err
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("failed to post")
 	}
 
 	return nil

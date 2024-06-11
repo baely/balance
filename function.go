@@ -15,8 +15,8 @@ import (
 
 	"github.com/baely/balance/internal/database"
 	"github.com/baely/balance/internal/integrations"
-	"github.com/baely/balance/internal/model"
 	"github.com/baely/balance/internal/service"
+	"github.com/baely/balance/pkg/model"
 )
 
 type Server struct {
@@ -141,7 +141,11 @@ func ProcessTransaction(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if upEvent.Data.Attributes.EventType != model.WebhookEventTypeEnum("TRANSACTION_CREATED") {
-		fmt.Println("Stop processing. Transaction ID:", upEvent.Data.Relationships.Transaction.Data.Id)
+		if upEvent.Data.Relationships.Transaction == nil {
+			fmt.Println("no transaction details")
+		} else {
+			fmt.Println("Stop processing. Transaction ID:", upEvent.Data.Relationships.Transaction.Data.Id)
+		}
 		return
 	}
 
@@ -188,6 +192,7 @@ func ProcessTransaction(w http.ResponseWriter, r *http.Request) {
 	dbClient.UpdateAccountBalance(accountBalance)
 
 	webhookUris, _ := dbClient.GetWebhookUris()
+	rawWebhookUris, _ := dbClient.GetRawWebhookUris()
 
 	wg := &sync.WaitGroup{}
 	fmt.Println("sending webhook events. count:", len(webhookUris))
@@ -197,6 +202,18 @@ func ProcessTransaction(w http.ResponseWriter, r *http.Request) {
 			fmt.Println("sending webhook to:", uri)
 			if err := service.SendWebhookEvent(uri, account, transaction); err != nil {
 				fmt.Println("error sending webhook:", err)
+			}
+			wg.Done()
+		}(uri)
+	}
+
+	fmt.Println("sending raw webhook events. count:", len(rawWebhookUris))
+	for _, uri := range rawWebhookUris {
+		wg.Add(1)
+		go func(uri string) {
+			fmt.Println("sending raw webhook to:", uri)
+			if err := service.SendRawWebhookEvent(uri, account, transaction); err != nil {
+				fmt.Println("error sending raw webhook:", err)
 			}
 			wg.Done()
 		}(uri)

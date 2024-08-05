@@ -29,6 +29,7 @@ func formatCurrency(value string, iso string) string {
 }
 
 func SendWebhookEvent(uri string, account model.AccountResource, transaction model.TransactionResource) error {
+
 	_, err := url.Parse(uri)
 	if err != nil {
 		return err

@@ -140,15 +140,6 @@ func ProcessTransaction(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if upEvent.Data.Attributes.EventType != model.WebhookEventTypeEnum("TRANSACTION_CREATED") {
-		if upEvent.Data.Relationships.Transaction == nil {
-			fmt.Println("no transaction details")
-		} else {
-			fmt.Println("Stop processing. Transaction ID:", upEvent.Data.Relationships.Transaction.Data.Id)
-		}
-		return
-	}
-
 	upClient := integrations.NewUpClient(os.Getenv("UP_TOKEN"))
 
 	// Retrieve transaction details
@@ -174,10 +165,6 @@ func ProcessTransaction(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if account.Attributes.AccountType != model.AccountTypeEnum("TRANSACTIONAL") {
-		return
-	}
-
 	accountBalance := account.Attributes.Balance.Value
 
 	// Update datastore
@@ -197,6 +184,15 @@ func ProcessTransaction(w http.ResponseWriter, r *http.Request) {
 	wg := &sync.WaitGroup{}
 	fmt.Println("sending webhook events. count:", len(webhookUris))
 	for _, uri := range webhookUris {
+		if upEvent.Data.Attributes.EventType != model.WebhookEventTypeEnum("TRANSACTION_CREATED") {
+			// Skip sending webhook events for non-transaction created events
+			break
+		}
+		if account.Attributes.AccountType != model.AccountTypeEnum("TRANSACTIONAL") {
+			// Skip sending webhook events for non-transactional accounts
+			break
+		}
+
 		wg.Add(1)
 		go func(uri string) {
 			fmt.Println("sending webhook to:", uri)

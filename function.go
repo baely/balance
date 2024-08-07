@@ -218,12 +218,12 @@ func ProcessTransaction(w http.ResponseWriter, r *http.Request) {
 	wg.Wait()
 
 	// push the message to pubsub
-	type pubsubMessage struct {
+	type TransactionEvent struct {
 		Account     model.AccountResource
 		Transaction model.TransactionResource
 	}
 
-	data, _ := json.Marshal(pubsubMessage{
+	data, _ := json.Marshal(TransactionEvent{
 		Account:     account,
 		Transaction: transaction,
 	})

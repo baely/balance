@@ -216,6 +216,31 @@ func ProcessTransaction(w http.ResponseWriter, r *http.Request) {
 	}
 
 	wg.Wait()
+
+	// push the message to pubsub
+	type TransactionEvent struct {
+		Account     model.AccountResource
+		Transaction model.TransactionResource
+	}
+
+	data, _ := json.Marshal(TransactionEvent{
+		Account:     account,
+		Transaction: transaction,
+	})
+
+	client := integrations.GetClient()
+	topic := client.Topic("transactions")
+	res := topic.Publish(context.Background(), &pubsub.Message{
+		ID:   uuid.NewString(),
+		Data: data,
+	})
+	id, err := res.Get(context.Background())
+	if err != nil {
+		fmt.Println("error publishing message:", err)
+	} else {
+		fmt.Println("new published message:", id)
+	}
+
 	return
 }
 

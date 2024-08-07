@@ -230,10 +230,16 @@ func ProcessTransaction(w http.ResponseWriter, r *http.Request) {
 
 	client := integrations.GetClient()
 	topic := client.Topic("projects/baileybutler-syd/topics/transactions")
-	topic.Publish(context.Background(), &pubsub.Message{
+	res := topic.Publish(context.Background(), &pubsub.Message{
 		ID:   uuid.NewString(),
 		Data: data,
 	})
+	id, err := res.Get(context.Background())
+	if err != nil {
+		fmt.Println("error publishing message:", err)
+	} else {
+		fmt.Println("new published message:", id)
+	}
 
 	return
 }

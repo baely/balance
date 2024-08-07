@@ -229,7 +229,7 @@ func ProcessTransaction(w http.ResponseWriter, r *http.Request) {
 	})
 
 	client := integrations.GetClient()
-	topic := client.Topic("projects/baileybutler-syd/topics/transactions")
+	topic := client.Topic("transactions")
 	res := topic.Publish(context.Background(), &pubsub.Message{
 		ID:   uuid.NewString(),
 		Data: data,

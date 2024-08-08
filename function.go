@@ -80,7 +80,7 @@ func TriggerBalanceUpdate(w http.ResponseWriter, r *http.Request) {
 	span := trace.SpanFromContext(r.Context())
 	defer span.End()
 
-	client := integrations.GetClient()
+	client := integrations.GetClient(ctx)
 	defer client.Close()
 
 	body, err := io.ReadAll(r.Body)
@@ -248,7 +248,7 @@ func ProcessTransaction(w http.ResponseWriter, r *http.Request) {
 		Transaction: transaction,
 	})
 
-	client := integrations.GetClient()
+	client := integrations.GetClient(ctx)
 	topic := client.Topic("transactions")
 	res := topic.Publish(ctx, &pubsub.Message{
 		ID:   uuid.NewString(),

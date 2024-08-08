@@ -264,7 +264,7 @@ func ProcessTransaction(w http.ResponseWriter, r *http.Request) {
 		ID:   uuid.NewString(),
 		Data: data,
 		Attributes: map[string]string{
-			"trace-id": traceID[0],
+			"trace-id": traceID,
 		},
 	})
 	id, err := res.Get(context.Background())

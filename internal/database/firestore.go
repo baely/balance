@@ -6,8 +6,11 @@ import (
 
 	"cloud.google.com/go/firestore"
 	firebase "firebase.google.com/go"
+	"go.opentelemetry.io/otel"
 	"google.golang.org/api/iterator"
 )
+
+var tracer = otel.Tracer("balance")
 
 type Client struct {
 	firestoreClient *firestore.Client
@@ -81,6 +84,9 @@ func (c *Client) AddWebhook(ctx context.Context, uri string) error {
 }
 
 func (c *Client) getUris(ctx context.Context, path string) ([]string, error) {
+	ctx, span := tracer.Start(ctx, "get-uris")
+	defer span.End()
+
 	var uris []string
 
 	iter := c.firestoreClient.Collection(path).Documents(ctx)
@@ -114,9 +120,13 @@ func (c *Client) getUris(ctx context.Context, path string) ([]string, error) {
 }
 
 func (c *Client) GetWebhookUris(ctx context.Context) ([]string, error) {
+	ctx, span := tracer.Start(ctx, "get-webhook-uris")
+	defer span.End()
 	return c.getUris(ctx, "webhooks")
 }
 
 func (c *Client) GetRawWebhookUris(ctx context.Context) ([]string, error) {
+	ctx, span := tracer.Start(ctx, "get-raw-webhook-uris")
+	defer span.End()
 	return c.getUris(ctx, "raw-webhooks")
 }

@@ -37,15 +37,19 @@ func newServer() *Server {
 
 	r := chi.NewRouter()
 
-	r.Handle("/account-balance", otelhttp.NewHandler(http.HandlerFunc(RetrieveAccountBalance), "RetrieveAccountBalance"))
-	r.Handle("/webhook", otelhttp.NewHandler(http.HandlerFunc(TriggerBalanceUpdate), "TriggerBalanceUpdate"))
-	r.Handle("/register", otelhttp.NewHandler(http.HandlerFunc(RegisterWebhook), "RegisterWebhook"))
-	r.Handle("/process", otelhttp.NewHandler(http.HandlerFunc(ProcessTransaction), "ProcessTransaction"))
+	register := func(path string, handler http.HandlerFunc) {
+		r.Handle(path, otelhttp.WithRouteTag(path, handler))
+	}
+
+	register("/account-balance", RetrieveAccountBalance)
+	register("/webhook", TriggerBalanceUpdate)
+	register("/register", RegisterWebhook)
+	register("/process", ProcessTransaction)
 
 	return &Server{
 		http.Server{
 			Addr:    fmt.Sprintf(":%s", port),
-			Handler: otelhttp.NewHandler(r, "balance"),
+			Handler: otelhttp.NewHandler(r, "/"),
 		},
 	}
 }

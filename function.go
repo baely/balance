@@ -178,7 +178,7 @@ func ProcessTransaction(w http.ResponseWriter, r *http.Request) {
 		fmt.Println("no transaction details")
 		return
 	}
-	transaction, err := upClient.GetTransaction(eventTransaction.Data.Id)
+	transaction, err := upClient.GetTransaction(ctx, eventTransaction.Data.Id)
 	if err != nil {
 		fmt.Println("error retrieving transaction:", err)
 		http.Error(w, "", http.StatusInternalServerError)
@@ -187,7 +187,7 @@ func ProcessTransaction(w http.ResponseWriter, r *http.Request) {
 
 	// Retrieve account details
 	accountId := transaction.Relationships.Account.Data.Id
-	account, err := upClient.GetAccount(accountId)
+	account, err := upClient.GetAccount(ctx, accountId)
 	if err != nil {
 		fmt.Println("error retrieving account:", err)
 		http.Error(w, "", http.StatusInternalServerError)

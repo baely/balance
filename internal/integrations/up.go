@@ -2,6 +2,7 @@ package integrations
 
 import (
 	"bytes"
+	"context"
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
@@ -27,13 +28,13 @@ func NewUpClient(accessToken string) *UpClient {
 	}
 }
 
-func (c *UpClient) request(endpoint string, ret interface{}) error {
+func (c *UpClient) request(ctx context.Context, endpoint string, ret interface{}) error {
 	var b []byte
 	r := bytes.NewBuffer(b)
 
 	uri := fmt.Sprintf("%s%s", upBaseUri, endpoint)
 
-	req, err := http.NewRequest(http.MethodGet, uri, r)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, uri, r)
 	if err != nil {
 		return err
 	}
@@ -57,12 +58,12 @@ func (c *UpClient) request(endpoint string, ret interface{}) error {
 	return nil
 }
 
-func (c *UpClient) GetAccount(accountId string) (model.AccountResource, error) {
+func (c *UpClient) GetAccount(ctx context.Context, accountId string) (model.AccountResource, error) {
 	var resp model.GetAccountResponse
 
 	endpoint := fmt.Sprintf("accounts/%s", accountId)
 
-	err := c.request(endpoint, &resp)
+	err := c.request(ctx, endpoint, &resp)
 	if err != nil {
 		return model.AccountResource{}, err
 	}
@@ -70,12 +71,12 @@ func (c *UpClient) GetAccount(accountId string) (model.AccountResource, error) {
 	return resp.Data, nil
 }
 
-func (c *UpClient) GetTransaction(transactionId string) (model.TransactionResource, error) {
+func (c *UpClient) GetTransaction(ctx context.Context, transactionId string) (model.TransactionResource, error) {
 	var resp model.GetTransactionResponse
 
 	endpoint := fmt.Sprintf("transactions/%s", transactionId)
 
-	err := c.request(endpoint, &resp)
+	err := c.request(ctx, endpoint, &resp)
 	if err != nil {
 		return model.TransactionResource{}, err
 	}

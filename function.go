@@ -80,6 +80,8 @@ func TriggerBalanceUpdate(w http.ResponseWriter, r *http.Request) {
 	span := trace.SpanFromContext(r.Context())
 	defer span.End()
 
+	ctx := r.Context()
+
 	client := integrations.GetClient(ctx)
 	defer client.Close()
 
@@ -110,7 +112,6 @@ func TriggerBalanceUpdate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Push event to pubsub topic
-	ctx := r.Context()
 	res := topic.Publish(ctx, msg)
 	_, err = res.Get(ctx)
 	if err != nil {

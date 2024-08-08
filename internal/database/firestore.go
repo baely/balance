@@ -37,8 +37,7 @@ func (c *Client) Close() {
 	c.firestoreClient.Close()
 }
 
-func (c *Client) UpdateAccountBalance(value string) error {
-	ctx := context.Background()
+func (c *Client) UpdateAccountBalance(ctx context.Context, value string) error {
 	_, err := c.firestoreClient.Collection("balance").Doc("account-balance").Set(ctx, map[string]interface{}{
 		"balance": value,
 	})
@@ -49,8 +48,7 @@ func (c *Client) UpdateAccountBalance(value string) error {
 	return nil
 }
 
-func (c *Client) GetAccountBalance() (string, error) {
-	ctx := context.Background()
+func (c *Client) GetAccountBalance(ctx context.Context) (string, error) {
 	iter, err := c.firestoreClient.Collection("balance").Doc("account-balance").Get(ctx)
 	if err != nil {
 		fmt.Println(err)
@@ -71,9 +69,7 @@ func (c *Client) GetAccountBalance() (string, error) {
 	return balance, nil
 }
 
-func (c *Client) AddWebhook(uri string) error {
-	ctx := context.Background()
-
+func (c *Client) AddWebhook(ctx context.Context, uri string) error {
 	_, _, err := c.firestoreClient.Collection("webhooks").Add(ctx, map[string]interface{}{
 		"uri": uri,
 	})
@@ -84,10 +80,9 @@ func (c *Client) AddWebhook(uri string) error {
 	return nil
 }
 
-func (c *Client) getUris(path string) ([]string, error) {
+func (c *Client) getUris(ctx context.Context, path string) ([]string, error) {
 	var uris []string
 
-	ctx := context.Background()
 	iter := c.firestoreClient.Collection(path).Documents(ctx)
 
 	for {
@@ -118,10 +113,10 @@ func (c *Client) getUris(path string) ([]string, error) {
 	return uris, nil
 }
 
-func (c *Client) GetWebhookUris() ([]string, error) {
-	return c.getUris("webhooks")
+func (c *Client) GetWebhookUris(ctx context.Context) ([]string, error) {
+	return c.getUris(ctx, "webhooks")
 }
 
-func (c *Client) GetRawWebhookUris() ([]string, error) {
-	return c.getUris("raw-webhooks")
+func (c *Client) GetRawWebhookUris(ctx context.Context) ([]string, error) {
+	return c.getUris(ctx, "raw-webhooks")
 }

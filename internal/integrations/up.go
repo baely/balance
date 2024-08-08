@@ -11,6 +11,8 @@ import (
 	"net/http"
 	"os"
 
+	"go.opentelemetry.io/otel"
+
 	"github.com/baely/balance/pkg/model"
 )
 
@@ -29,12 +31,15 @@ func NewUpClient(accessToken string) *UpClient {
 }
 
 func (c *UpClient) request(ctx context.Context, endpoint string, ret interface{}) error {
+	spanCtx, span := otel.Tracer("balance").Start(ctx, "up-request")
+	defer span.End()
+
 	var b []byte
 	r := bytes.NewBuffer(b)
 
 	uri := fmt.Sprintf("%s%s", upBaseUri, endpoint)
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, uri, r)
+	req, err := http.NewRequestWithContext(spanCtx, http.MethodGet, uri, r)
 	if err != nil {
 		return err
 	}

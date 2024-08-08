@@ -57,6 +57,8 @@ func (s *Server) Start() error {
 }
 
 func RetrieveAccountBalance(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
 	// Retrieve current account balance from firestore
 	dbClient, err := database.GetClient(os.Getenv("GCP_PROJECT"))
 	if err != nil {
@@ -65,7 +67,7 @@ func RetrieveAccountBalance(w http.ResponseWriter, r *http.Request) {
 	}
 	defer dbClient.Close()
 
-	accountBalance, err := dbClient.GetAccountBalance()
+	accountBalance, err := dbClient.GetAccountBalance(ctx)
 	if err != nil {
 		fmt.Println(err)
 		http.Error(w, "", http.StatusInternalServerError)
@@ -195,10 +197,10 @@ func ProcessTransaction(w http.ResponseWriter, r *http.Request) {
 	}
 	defer dbClient.Close()
 
-	dbClient.UpdateAccountBalance(accountBalance)
+	dbClient.UpdateAccountBalance(ctx, accountBalance)
 
-	webhookUris, _ := dbClient.GetWebhookUris()
-	rawWebhookUris, _ := dbClient.GetRawWebhookUris()
+	webhookUris, _ := dbClient.GetWebhookUris(ctx)
+	rawWebhookUris, _ := dbClient.GetRawWebhookUris(ctx)
 
 	wg := &sync.WaitGroup{}
 	fmt.Println("sending webhook events. count:", len(webhookUris))
@@ -264,6 +266,8 @@ func ProcessTransaction(w http.ResponseWriter, r *http.Request) {
 }
 
 func RegisterWebhook(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
 	data, err := io.ReadAll(r.Body)
 	if err != nil {
 		fmt.Println("data error:", err)
@@ -281,7 +285,7 @@ func RegisterWebhook(w http.ResponseWriter, r *http.Request) {
 	defer dbClient.Close()
 
 	// Add new URI to firestore
-	err = dbClient.AddWebhook(uri)
+	err = dbClient.AddWebhook(ctx, uri)
 	if err != nil {
 		fmt.Println("database write error:", err)
 		http.Error(w, "", http.StatusInternalServerError)

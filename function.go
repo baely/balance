@@ -127,21 +127,22 @@ type MessagePublishedData struct {
 // See the documentation for more details:
 // https://cloud.google.com/pubsub/docs/reference/rest/v1/PubsubMessage
 type PubSubMessage struct {
-	Data []byte `json:"data"`
+	Data       []byte            `json:"data"`
+	Attributes map[string]string `json:"attributes"`
 }
 
-func unmarshall[T any](r io.Reader, v T) error {
+func unmarshall[T any](r io.Reader, v T) (map[string]string, error) {
 	var e MessagePublishedData
 
 	if err := json.NewDecoder(r).Decode(&e); err != nil {
-		return err
+		return nil, err
 	}
-	return json.Unmarshal(e.Message.Data, &v)
+	return e.Message.Attributes, json.Unmarshal(e.Message.Data, &v)
 }
 
 func ProcessTransaction(w http.ResponseWriter, r *http.Request) {
 	var upEvent model.WebhookEventCallback
-	err := unmarshall(r.Body, &upEvent)
+	attrs, err := unmarshall(r.Body, &upEvent)
 	if err != nil {
 		fmt.Println("unmarshall error:", err)
 		http.Error(w, "", http.StatusBadRequest)
@@ -150,14 +151,14 @@ func ProcessTransaction(w http.ResponseWriter, r *http.Request) {
 
 	span := trace.SpanFromContext(r.Context())
 
-	traceID, ok := r.Header["trace-id"]
+	traceID, ok := attrs["trace-id"]
 	if !ok {
 		fmt.Println("trace-id not found")
-		traceID = []string{uuid.NewString()}
+		traceID = uuid.NewString()
 	}
 
 	spanCtx := trace.NewSpanContext(trace.SpanContextConfig{
-		TraceID: trace.TraceID([]byte(traceID[0])),
+		TraceID: trace.TraceID([]byte(traceID)),
 	})
 
 	link := trace.Link{

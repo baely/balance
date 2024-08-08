@@ -45,7 +45,7 @@ func newServer() *Server {
 	return &Server{
 		http.Server{
 			Addr:    fmt.Sprintf(":%s", port),
-			Handler: r,
+			Handler: otelhttp.NewHandler(r, "balance"),
 		},
 	}
 }

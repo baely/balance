@@ -34,7 +34,7 @@ func formatCurrency(value string, iso string) string {
 }
 
 func SendWebhookEvent(ctx context.Context, uri string, account model.AccountResource, transaction model.TransactionResource) error {
-	ctx, span := otel.Tracer("balance").Start(ctx, "send-webhook-event", trace.WithAttributes(attribute.String("uri", uri))
+	ctx, span := otel.Tracer("balance").Start(ctx, "send-webhook-event", trace.WithAttributes(attribute.String("uri", uri)))
 	defer span.End()
 
 	_, err := url.Parse(uri)
@@ -94,7 +94,7 @@ func SendWebhookEvent(ctx context.Context, uri string, account model.AccountReso
 }
 
 func SendRawWebhookEvent(ctx context.Context, uri string, account model.AccountResource, transaction model.TransactionResource) error {
-	ctx, span := otel.Tracer("balance").Start(ctx, "send-raw-webhook-event", trace.WithAttributes(attribute.String("uri", uri))
+	ctx, span := otel.Tracer("balance").Start(ctx, "send-raw-webhook-event", trace.WithAttributes(attribute.String("uri", uri)))
 	defer span.End()
 
 	_, err := url.Parse(uri)

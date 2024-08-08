@@ -103,17 +103,9 @@ func TriggerBalanceUpdate(w http.ResponseWriter, r *http.Request) {
 	guid, _ := uuid.NewRandom()
 	span.SetAttributes(attribute.String("message-id", guid.String()))
 
-	spanContext := trace.SpanContextFromContext(r.Context())
-	traceID := spanContext.TraceID().String()
-	spanID := spanContext.SpanID().String()
-
 	msg := &pubsub.Message{
 		ID:   guid.String(),
 		Data: body,
-		Attributes: map[string]string{
-			"trace-id": traceID,
-			"span-id":  spanID,
-		},
 	}
 
 	// Push event to pubsub topic
@@ -138,18 +130,17 @@ type MessagePublishedData struct {
 // See the documentation for more details:
 // https://cloud.google.com/pubsub/docs/reference/rest/v1/PubsubMessage
 type PubSubMessage struct {
-	ID         string            `json:"id"`
-	Data       []byte            `json:"data"`
-	Attributes map[string]string `json:"attributes"`
+	ID   string `json:"id"`
+	Data []byte `json:"data"`
 }
 
-func unmarshall[T any](r io.Reader, v T) (map[string]string, error) {
+func unmarshall[T any](r io.Reader, v T) (string, error) {
 	var e MessagePublishedData
 
 	if err := json.NewDecoder(r).Decode(&e); err != nil {
-		return nil, err
+		return "", err
 	}
-	return e.Message.Attributes, json.Unmarshal(e.Message.Data, &v)
+	return e.Message.ID, json.Unmarshal(e.Message.Data, &v)
 }
 
 func ProcessTransaction(w http.ResponseWriter, r *http.Request) {
@@ -159,14 +150,14 @@ func ProcessTransaction(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	var upEvent model.WebhookEventCallback
-	attrs, err := unmarshall(r.Body, &upEvent)
+	messageId, err := unmarshall(r.Body, &upEvent)
 	if err != nil {
 		fmt.Println("unmarshall error:", err)
 		http.Error(w, "", http.StatusBadRequest)
 		return
 	}
 
-	span.SetAttributes(attribute.String("message-id", attrs["messageId"]))
+	span.SetAttributes(attribute.String("message-id", messageId))
 
 	upClient := integrations.NewUpClient(os.Getenv("UP_TOKEN"))
 

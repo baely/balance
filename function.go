@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -255,7 +254,7 @@ func ProcessTransaction(w http.ResponseWriter, r *http.Request) {
 		ID:   uuid.NewString(),
 		Data: data,
 	})
-	id, err := res.Get(context.Background())
+	id, err := res.Get(ctx)
 	if err != nil {
 		fmt.Println("error publishing message:", err)
 	} else {

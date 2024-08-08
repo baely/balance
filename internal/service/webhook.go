@@ -2,11 +2,16 @@ package service
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
+
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 
 	"github.com/baely/balance/pkg/model"
 )
@@ -28,7 +33,10 @@ func formatCurrency(value string, iso string) string {
 	return s
 }
 
-func SendWebhookEvent(uri string, account model.AccountResource, transaction model.TransactionResource) error {
+func SendWebhookEvent(ctx context.Context, uri string, account model.AccountResource, transaction model.TransactionResource) error {
+	ctx, span := otel.Tracer("balance").Start(ctx, "send-webhook-event", trace.WithAttributes(attribute.String("uri", uri))
+	defer span.End()
+
 	_, err := url.Parse(uri)
 	if err != nil {
 		return err
@@ -68,7 +76,12 @@ func SendWebhookEvent(uri string, account model.AccountResource, transaction mod
 
 	msg := bytes.NewReader(eventMsg)
 
-	resp, err := http.Post(uri, "application/json", msg)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, uri, msg)
+	if err != nil {
+		return err
+	}
+
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return err
 	}
@@ -80,7 +93,10 @@ func SendWebhookEvent(uri string, account model.AccountResource, transaction mod
 	return nil
 }
 
-func SendRawWebhookEvent(uri string, account model.AccountResource, transaction model.TransactionResource) error {
+func SendRawWebhookEvent(ctx context.Context, uri string, account model.AccountResource, transaction model.TransactionResource) error {
+	ctx, span := otel.Tracer("balance").Start(ctx, "send-raw-webhook-event", trace.WithAttributes(attribute.String("uri", uri))
+	defer span.End()
+
 	_, err := url.Parse(uri)
 	if err != nil {
 		return err
@@ -98,7 +114,12 @@ func SendRawWebhookEvent(uri string, account model.AccountResource, transaction 
 
 	msg := bytes.NewReader(eventMsg)
 
-	resp, err := http.Post(uri, "application/json", msg)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, uri, msg)
+	if err != nil {
+		return err
+	}
+
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return err
 	}

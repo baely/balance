@@ -217,7 +217,7 @@ func ProcessTransaction(w http.ResponseWriter, r *http.Request) {
 		wg.Add(1)
 		go func(uri string) {
 			fmt.Println("sending webhook to:", uri)
-			if err := service.SendWebhookEvent(uri, account, transaction); err != nil {
+			if err := service.SendWebhookEvent(ctx, uri, account, transaction); err != nil {
 				fmt.Println("error sending webhook:", err)
 			}
 			wg.Done()
@@ -229,7 +229,7 @@ func ProcessTransaction(w http.ResponseWriter, r *http.Request) {
 		wg.Add(1)
 		go func(uri string) {
 			fmt.Println("sending raw webhook to:", uri)
-			if err := service.SendRawWebhookEvent(uri, account, transaction); err != nil {
+			if err := service.SendRawWebhookEvent(ctx, uri, account, transaction); err != nil {
 				fmt.Println("error sending raw webhook:", err)
 			}
 			wg.Done()

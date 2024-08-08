@@ -197,46 +197,15 @@ func ProcessTransaction(w http.ResponseWriter, r *http.Request) {
 	}
 	defer dbClient.Close()
 
-	dbClient.UpdateAccountBalance(ctx, accountBalance)
-
-	webhookUris, _ := dbClient.GetWebhookUris(ctx)
-	rawWebhookUris, _ := dbClient.GetRawWebhookUris(ctx)
-
 	wg := &sync.WaitGroup{}
-	fmt.Println("sending webhook events. count:", len(webhookUris))
-	for _, uri := range webhookUris {
-		if upEvent.Data.Attributes.EventType != model.WebhookEventTypeEnum("TRANSACTION_CREATED") {
-			// Skip sending webhook events for non-transaction created events
-			break
-		}
-		if account.Attributes.AccountType != model.AccountTypeEnum("TRANSACTIONAL") {
-			// Skip sending webhook events for non-transactional accounts
-			break
-		}
 
+	go func() {
 		wg.Add(1)
-		go func(uri string) {
-			fmt.Println("sending webhook to:", uri)
-			if err := service.SendWebhookEvent(ctx, uri, account, transaction); err != nil {
-				fmt.Println("error sending webhook:", err)
-			}
-			wg.Done()
-		}(uri)
-	}
+		defer wg.Done()
+		dbClient.UpdateAccountBalance(ctx, accountBalance)
+	}()
 
-	fmt.Println("sending raw webhook events. count:", len(rawWebhookUris))
-	for _, uri := range rawWebhookUris {
-		wg.Add(1)
-		go func(uri string) {
-			fmt.Println("sending raw webhook to:", uri)
-			if err := service.SendRawWebhookEvent(ctx, uri, account, transaction); err != nil {
-				fmt.Println("error sending raw webhook:", err)
-			}
-			wg.Done()
-		}(uri)
-	}
-
-	wg.Wait()
+	go service.FireAll(ctx, wg, dbClient, upEvent, account, transaction)
 
 	// push the message to pubsub
 	type TransactionEvent struct {
@@ -261,6 +230,8 @@ func ProcessTransaction(w http.ResponseWriter, r *http.Request) {
 	} else {
 		fmt.Println("new published message:", id)
 	}
+
+	wg.Wait()
 
 	return
 }

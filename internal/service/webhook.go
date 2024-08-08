@@ -139,6 +139,8 @@ func FireAll(ctx context.Context, wg *sync.WaitGroup, dbClient *database.Client,
 }
 
 func fireWebhook(ctx context.Context, wg *sync.WaitGroup, dbClient *database.Client, upEvent model.WebhookEventCallback, account model.AccountResource, transaction model.TransactionResource) {
+	ctx, span := otel.Tracer("balance").Start(ctx, "fire-webhook")
+	defer span.End()
 	webhookUris, _ := dbClient.GetWebhookUris(ctx)
 	fmt.Println("sending webhook events. count:", len(webhookUris))
 	for _, uri := range webhookUris {
@@ -163,6 +165,8 @@ func fireWebhook(ctx context.Context, wg *sync.WaitGroup, dbClient *database.Cli
 }
 
 func fireRawWebhook(ctx context.Context, wg *sync.WaitGroup, dbClient *database.Client, account model.AccountResource, transaction model.TransactionResource) {
+	ctx, span := otel.Tracer("balance").Start(ctx, "fire-raw-webhook")
+	defer span.End()
 	rawWebhookUris, _ := dbClient.GetRawWebhookUris(ctx)
 	fmt.Println("sending raw webhook events. count:", len(rawWebhookUris))
 	for _, uri := range rawWebhookUris {

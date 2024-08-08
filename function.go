@@ -13,12 +13,17 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/google/uuid"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/baely/balance/internal/database"
 	"github.com/baely/balance/internal/integrations"
 	"github.com/baely/balance/internal/service"
 	"github.com/baely/balance/pkg/model"
+)
+
+const (
+	tracerName = "balance"
 )
 
 type Server struct {
@@ -71,6 +76,9 @@ func RetrieveAccountBalance(w http.ResponseWriter, r *http.Request) {
 }
 
 func TriggerBalanceUpdate(w http.ResponseWriter, r *http.Request) {
+	span := trace.SpanFromContext(r.Context())
+	defer span.End()
+
 	client := integrations.GetClient()
 	defer client.Close()
 
@@ -93,15 +101,18 @@ func TriggerBalanceUpdate(w http.ResponseWriter, r *http.Request) {
 	topic := client.Topic("webhook-events")
 
 	guid, _ := uuid.NewRandom()
+	span.SetAttributes(attribute.String("message-id", guid.String()))
 
 	spanContext := trace.SpanContextFromContext(r.Context())
 	traceID := spanContext.TraceID().String()
+	spanID := spanContext.SpanID().String()
 
 	msg := &pubsub.Message{
 		ID:   guid.String(),
 		Data: body,
 		Attributes: map[string]string{
 			"trace-id": traceID,
+			"span-id":  spanID,
 		},
 	}
 
@@ -127,6 +138,7 @@ type MessagePublishedData struct {
 // See the documentation for more details:
 // https://cloud.google.com/pubsub/docs/reference/rest/v1/PubsubMessage
 type PubSubMessage struct {
+	ID         string            `json:"id"`
 	Data       []byte            `json:"data"`
 	Attributes map[string]string `json:"attributes"`
 }
@@ -141,6 +153,11 @@ func unmarshall[T any](r io.Reader, v T) (map[string]string, error) {
 }
 
 func ProcessTransaction(w http.ResponseWriter, r *http.Request) {
+	span := trace.SpanFromContext(r.Context())
+	defer span.End()
+
+	ctx := r.Context()
+
 	var upEvent model.WebhookEventCallback
 	attrs, err := unmarshall(r.Body, &upEvent)
 	if err != nil {
@@ -149,26 +166,7 @@ func ProcessTransaction(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	span := trace.SpanFromContext(r.Context())
-
-	traceID, ok := attrs["trace-id"]
-	if !ok {
-		fmt.Println("trace-id not found")
-		traceID = uuid.NewString()
-	}
-
-	spanCtx := trace.NewSpanContext(trace.SpanContextConfig{
-		TraceID: trace.TraceID([]byte(traceID)),
-	})
-
-	link := trace.Link{
-		SpanContext: spanCtx,
-	}
-
-	// link to span
-	span.AddLink(link)
-
-	ctx := trace.ContextWithSpanContext(context.Background(), spanCtx)
+	span.SetAttributes(attribute.String("message-id", attrs["messageId"]))
 
 	upClient := integrations.NewUpClient(os.Getenv("UP_TOKEN"))
 
@@ -263,9 +261,6 @@ func ProcessTransaction(w http.ResponseWriter, r *http.Request) {
 	res := topic.Publish(ctx, &pubsub.Message{
 		ID:   uuid.NewString(),
 		Data: data,
-		Attributes: map[string]string{
-			"trace-id": traceID,
-		},
 	})
 	id, err := res.Get(context.Background())
 	if err != nil {

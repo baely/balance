@@ -12,6 +12,8 @@ import (
 	"cloud.google.com/go/pubsub"
 	"github.com/go-chi/chi"
 	"github.com/google/uuid"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"go.opentelemetry.io/otel/trace"
 
 	"github.com/baely/balance/internal/database"
 	"github.com/baely/balance/internal/integrations"
@@ -31,10 +33,10 @@ func newServer() *Server {
 
 	r := chi.NewRouter()
 
-	r.HandleFunc("/account-balance", RetrieveAccountBalance)
-	r.HandleFunc("/webhook", TriggerBalanceUpdate)
-	r.HandleFunc("/register", RegisterWebhook)
-	r.HandleFunc("/process", ProcessTransaction)
+	r.Handle("/account-balance", otelhttp.NewHandler(http.HandlerFunc(RetrieveAccountBalance), "RetrieveAccountBalance"))
+	r.Handle("/webhook", otelhttp.NewHandler(http.HandlerFunc(TriggerBalanceUpdate), "TriggerBalanceUpdate"))
+	r.Handle("/register", otelhttp.NewHandler(http.HandlerFunc(RegisterWebhook), "RegisterWebhook"))
+	r.Handle("/process", otelhttp.NewHandler(http.HandlerFunc(ProcessTransaction), "ProcessTransaction"))
 
 	return &Server{
 		http.Server{
@@ -92,13 +94,19 @@ func TriggerBalanceUpdate(w http.ResponseWriter, r *http.Request) {
 
 	guid, _ := uuid.NewRandom()
 
+	spanContext := trace.SpanContextFromContext(r.Context())
+	traceID := spanContext.TraceID().String()
+
 	msg := &pubsub.Message{
 		ID:   guid.String(),
 		Data: body,
+		Attributes: map[string]string{
+			"trace-id": traceID,
+		},
 	}
 
 	// Push event to pubsub topic
-	ctx := context.Background()
+	ctx := r.Context()
 	res := topic.Publish(ctx, msg)
 	_, err = res.Get(ctx)
 	if err != nil {
@@ -139,6 +147,27 @@ func ProcessTransaction(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "", http.StatusBadRequest)
 		return
 	}
+
+	span := trace.SpanFromContext(r.Context())
+
+	traceID, ok := r.Header["trace-id"]
+	if !ok {
+		fmt.Println("trace-id not found")
+		traceID = []string{uuid.NewString()}
+	}
+
+	spanCtx := trace.NewSpanContext(trace.SpanContextConfig{
+		TraceID: trace.TraceID([]byte(traceID[0])),
+	})
+
+	link := trace.Link{
+		SpanContext: spanCtx,
+	}
+
+	// link to span
+	span.AddLink(link)
+
+	ctx := trace.ContextWithSpanContext(context.Background(), spanCtx)
 
 	upClient := integrations.NewUpClient(os.Getenv("UP_TOKEN"))
 
@@ -230,9 +259,12 @@ func ProcessTransaction(w http.ResponseWriter, r *http.Request) {
 
 	client := integrations.GetClient()
 	topic := client.Topic("transactions")
-	res := topic.Publish(context.Background(), &pubsub.Message{
+	res := topic.Publish(ctx, &pubsub.Message{
 		ID:   uuid.NewString(),
 		Data: data,
+		Attributes: map[string]string{
+			"trace-id": traceID[0],
+		},
 	})
 	id, err := res.Get(context.Background())
 	if err != nil {

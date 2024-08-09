@@ -98,19 +98,19 @@ func (c *Client) getUris(ctx context.Context, path string) ([]string, error) {
 		}
 		if err != nil {
 			fmt.Println("error getting doc:", err)
-			continue
+			return nil, err
 		}
 
 		data, err := doc.DataAt("uri")
 		if err != nil {
 			fmt.Println("error getting uri:", err)
-			continue
+			return nil, err
 		}
 
 		uri, ok := data.(string)
 		if !ok {
 			fmt.Println("error parsing uri to string. data:", data)
-			continue
+			return nil, fmt.Errorf("error parsing uri to string. data: %v", data)
 		}
 
 		uris = append(uris, uri)

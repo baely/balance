@@ -2,12 +2,20 @@ package service
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
+	"sync"
 
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
+	"golang.org/x/sync/errgroup"
+
+	"github.com/baely/balance/internal/database"
 	"github.com/baely/balance/pkg/model"
 )
 
@@ -28,7 +36,10 @@ func formatCurrency(value string, iso string) string {
 	return s
 }
 
-func SendWebhookEvent(uri string, account model.AccountResource, transaction model.TransactionResource) error {
+func SendWebhookEvent(ctx context.Context, uri string, account model.AccountResource, transaction model.TransactionResource) error {
+	ctx, span := otel.Tracer("balance").Start(ctx, "send-webhook-event", trace.WithAttributes(attribute.String("uri", uri)))
+	defer span.End()
+
 	_, err := url.Parse(uri)
 	if err != nil {
 		return err
@@ -68,7 +79,12 @@ func SendWebhookEvent(uri string, account model.AccountResource, transaction mod
 
 	msg := bytes.NewReader(eventMsg)
 
-	resp, err := http.Post(uri, "application/json", msg)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, uri, msg)
+	if err != nil {
+		return err
+	}
+
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return err
 	}
@@ -80,7 +96,10 @@ func SendWebhookEvent(uri string, account model.AccountResource, transaction mod
 	return nil
 }
 
-func SendRawWebhookEvent(uri string, account model.AccountResource, transaction model.TransactionResource) error {
+func SendRawWebhookEvent(ctx context.Context, uri string, account model.AccountResource, transaction model.TransactionResource) error {
+	ctx, span := otel.Tracer("balance").Start(ctx, "send-raw-webhook-event", trace.WithAttributes(attribute.String("uri", uri)))
+	defer span.End()
+
 	_, err := url.Parse(uri)
 	if err != nil {
 		return err
@@ -98,7 +117,12 @@ func SendRawWebhookEvent(uri string, account model.AccountResource, transaction 
 
 	msg := bytes.NewReader(eventMsg)
 
-	resp, err := http.Post(uri, "application/json", msg)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, uri, msg)
+	if err != nil {
+		return err
+	}
+
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return err
 	}
@@ -107,5 +131,69 @@ func SendRawWebhookEvent(uri string, account model.AccountResource, transaction 
 		return fmt.Errorf("failed to post")
 	}
 
+	return nil
+}
+
+func FireAll(ctx context.Context, eg *errgroup.Group, dbClient *database.Client, upEvent model.WebhookEventCallback, account model.AccountResource, transaction model.TransactionResource) {
+	eg.Go(func() error {
+		return fireWebhook(ctx, dbClient, upEvent, account, transaction)
+	})
+	eg.Go(func() error {
+		return fireRawWebhook(ctx, dbClient, account, transaction)
+	})
+}
+
+func fireWebhook(ctx context.Context, dbClient *database.Client, upEvent model.WebhookEventCallback, account model.AccountResource, transaction model.TransactionResource) error {
+	ctx, span := otel.Tracer("balance").Start(ctx, "fire-webhook")
+	defer span.End()
+	webhookUris, err := dbClient.GetWebhookUris(ctx)
+	if err != nil {
+		return err
+	}
+	fmt.Println("sending webhook events. count:", len(webhookUris))
+	wg := &sync.WaitGroup{}
+	for _, uri := range webhookUris {
+		if upEvent.Data.Attributes.EventType != model.WebhookEventTypeEnum("TRANSACTION_CREATED") {
+			// Skip sending webhook events for non-transaction created events
+			break
+		}
+		if account.Attributes.AccountType != model.AccountTypeEnum("TRANSACTIONAL") {
+			// Skip sending webhook events for non-transactional accounts
+			break
+		}
+
+		wg.Add(1)
+		go func(uri string) {
+			fmt.Println("sending webhook to:", uri)
+			if err := SendWebhookEvent(ctx, uri, account, transaction); err != nil {
+				fmt.Println("error sending webhook:", err)
+			}
+			wg.Done()
+		}(uri)
+	}
+	wg.Wait()
+	return nil
+}
+
+func fireRawWebhook(ctx context.Context, dbClient *database.Client, account model.AccountResource, transaction model.TransactionResource) error {
+	ctx, span := otel.Tracer("balance").Start(ctx, "fire-raw-webhook")
+	defer span.End()
+	rawWebhookUris, err := dbClient.GetRawWebhookUris(ctx)
+	if err != nil {
+		return err
+	}
+	fmt.Println("sending raw webhook events. count:", len(rawWebhookUris))
+	wg := &sync.WaitGroup{}
+	for _, uri := range rawWebhookUris {
+		wg.Add(1)
+		go func(uri string) {
+			fmt.Println("sending raw webhook to:", uri)
+			if err := SendRawWebhookEvent(ctx, uri, account, transaction); err != nil {
+				fmt.Println("error sending raw webhook:", err)
+			}
+			wg.Done()
+		}(uri)
+	}
+	wg.Wait()
 	return nil
 }

@@ -6,7 +6,6 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"sync"
 
 	"cloud.google.com/go/pubsub"
 	"github.com/go-chi/chi"
@@ -14,6 +13,7 @@ import (
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
+	"golang.org/x/sync/errgroup"
 
 	"github.com/baely/balance/internal/database"
 	"github.com/baely/balance/internal/integrations"
@@ -201,41 +201,41 @@ func ProcessTransaction(w http.ResponseWriter, r *http.Request) {
 	}
 	defer dbClient.Close()
 
-	wg := &sync.WaitGroup{}
+	errGroup := &errgroup.Group{}
 
-	go func() {
-		wg.Add(1)
-		defer wg.Done()
-		dbClient.UpdateAccountBalance(ctx, accountBalance)
-	}()
-
-	go service.FireAll(ctx, wg, dbClient, upEvent, account, transaction)
-
-	// push the message to pubsub
-	type TransactionEvent struct {
-		Account     model.AccountResource
-		Transaction model.TransactionResource
-	}
-
-	data, _ := json.Marshal(TransactionEvent{
-		Account:     account,
-		Transaction: transaction,
+	errGroup.Go(func() error {
+		return dbClient.UpdateAccountBalance(ctx, accountBalance)
 	})
 
-	client := integrations.GetClient(ctx)
-	topic := client.Topic("transactions")
-	res := topic.Publish(ctx, &pubsub.Message{
-		ID:   uuid.NewString(),
-		Data: data,
-	})
-	id, err := res.Get(ctx)
-	if err != nil {
-		fmt.Println("error publishing message:", err)
-	} else {
+	go service.FireAll(ctx, errGroup, dbClient, upEvent, account, transaction)
+
+	errGroup.Go(func() error {
+		data, _ := json.Marshal(struct {
+			Account     model.AccountResource
+			Transaction model.TransactionResource
+		}{
+			Account:     account,
+			Transaction: transaction,
+		})
+		client := integrations.GetClient(ctx)
+		topic := client.Topic("transactions")
+		res := topic.Publish(ctx, &pubsub.Message{
+			ID:   uuid.NewString(),
+			Data: data,
+		})
+		id, err := res.Get(ctx)
+		if err != nil {
+			return err
+		}
 		fmt.Println("new published message:", id)
-	}
+		return nil
+	})
 
-	wg.Wait()
+	if err = errGroup.Wait(); err != nil {
+		fmt.Println("error processing transaction:", err)
+		http.Error(w, "", http.StatusInternalServerError)
+		return
+	}
 
 	return
 }

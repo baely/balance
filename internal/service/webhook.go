@@ -13,6 +13,7 @@ import (
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
+	"golang.org/x/sync/errgroup"
 
 	"github.com/baely/balance/internal/database"
 	"github.com/baely/balance/pkg/model"
@@ -133,16 +134,24 @@ func SendRawWebhookEvent(ctx context.Context, uri string, account model.AccountR
 	return nil
 }
 
-func FireAll(ctx context.Context, wg *sync.WaitGroup, dbClient *database.Client, upEvent model.WebhookEventCallback, account model.AccountResource, transaction model.TransactionResource) {
-	go fireWebhook(ctx, wg, dbClient, upEvent, account, transaction)
-	go fireRawWebhook(ctx, wg, dbClient, account, transaction)
+func FireAll(ctx context.Context, eg *errgroup.Group, dbClient *database.Client, upEvent model.WebhookEventCallback, account model.AccountResource, transaction model.TransactionResource) {
+	eg.Go(func() error {
+		return fireWebhook(ctx, dbClient, upEvent, account, transaction)
+	})
+	eg.Go(func() error {
+		return fireRawWebhook(ctx, dbClient, account, transaction)
+	})
 }
 
-func fireWebhook(ctx context.Context, wg *sync.WaitGroup, dbClient *database.Client, upEvent model.WebhookEventCallback, account model.AccountResource, transaction model.TransactionResource) {
+func fireWebhook(ctx context.Context, dbClient *database.Client, upEvent model.WebhookEventCallback, account model.AccountResource, transaction model.TransactionResource) error {
 	ctx, span := otel.Tracer("balance").Start(ctx, "fire-webhook")
 	defer span.End()
-	webhookUris, _ := dbClient.GetWebhookUris(ctx)
+	webhookUris, err := dbClient.GetWebhookUris(ctx)
+	if err != nil {
+		return err
+	}
 	fmt.Println("sending webhook events. count:", len(webhookUris))
+	wg := &sync.WaitGroup{}
 	for _, uri := range webhookUris {
 		if upEvent.Data.Attributes.EventType != model.WebhookEventTypeEnum("TRANSACTION_CREATED") {
 			// Skip sending webhook events for non-transaction created events
@@ -162,13 +171,19 @@ func fireWebhook(ctx context.Context, wg *sync.WaitGroup, dbClient *database.Cli
 			wg.Done()
 		}(uri)
 	}
+	wg.Wait()
+	return nil
 }
 
-func fireRawWebhook(ctx context.Context, wg *sync.WaitGroup, dbClient *database.Client, account model.AccountResource, transaction model.TransactionResource) {
+func fireRawWebhook(ctx context.Context, dbClient *database.Client, account model.AccountResource, transaction model.TransactionResource) error {
 	ctx, span := otel.Tracer("balance").Start(ctx, "fire-raw-webhook")
 	defer span.End()
-	rawWebhookUris, _ := dbClient.GetRawWebhookUris(ctx)
+	rawWebhookUris, err := dbClient.GetRawWebhookUris(ctx)
+	if err != nil {
+		return err
+	}
 	fmt.Println("sending raw webhook events. count:", len(rawWebhookUris))
+	wg := &sync.WaitGroup{}
 	for _, uri := range rawWebhookUris {
 		wg.Add(1)
 		go func(uri string) {
@@ -179,4 +194,6 @@ func fireRawWebhook(ctx context.Context, wg *sync.WaitGroup, dbClient *database.
 			wg.Done()
 		}(uri)
 	}
+	wg.Wait()
+	return nil
 }
